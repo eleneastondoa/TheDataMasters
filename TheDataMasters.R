@@ -83,18 +83,31 @@ consumo_resta <- consumo %>%
   inner_join(consumo_pred, by = c('date' = 'X', 'ccaa', 'producto')) %>%   
   select(date, ccaa, producto, volumen, volumen_predicted,
          valor, valor_predicted, precio, 
-         precio_predicted) %>% 
+         precio_predicted, Olas) %>% 
   mutate(volumen_resta = volumen - volumen_predicted,
          valor_resta = valor - valor_predicted,
          precio_resta = precio - precio_predicted) %>% 
   select(date, ccaa, producto, volumen_resta, valor_resta, 
-         precio_resta)
+         precio_resta, Olas)
 
 
 consumo_resta <- consumo_resta %>% 
   filter(ccaa != 'Nacional')
 #Importaciones exportaciones
 data_total$Fecha <- as.Date(data_total$Fecha)
+
+consumo_resta_dos_epocas <- consumo_resta %>% group_by(producto, ccaa) %>% summarise(volumen_resta = mean(volumen_resta),
+                                                                                 valor_resta = mean(valor_resta),
+                                                                                 precio_resta = mean(precio_resta))
+consumo_resta_dos_epocas <- as.data.frame(consumo_resta_dos_epocas)
+consumo_resta <- as.data.frame(consumo_resta)
+consumo_resta_dos_epocas$Olas <- 'Epoca completa'
+consumo_resta <- consumo_resta %>% select(-date)
+consumo_resta_dos_epocas <- consumo_resta_dos_epocas[c(2,1,3,4,5,6)]
+
+
+consumo_resta <- rbind(consumo_resta, consumo_resta_dos_epocas)
+
 
 
 # TEMPORADA ---------------------------------------------------------------
@@ -103,7 +116,7 @@ data_total$Fecha <- as.Date(data_total$Fecha)
 library(lubridate)
 temp <- consumo %>% dplyr::mutate(year = lubridate::year(date), month = lubridate::month(date), day = lubridate::day(date))
 temp <- temp %>% filter(ccaa != 'Nacional')
-
+temp
 
 temp1819 <- temp %>% filter(year == 2018 | year == 2019) %>%  
   filter(month < Fecha_inicio) %>%  
@@ -117,7 +130,6 @@ temp2020 <- temp %>% filter(year == 2020) %>%
   summarize (volumen = mean(volumen),valor = mean(valor), precio = mean(precio))
 
 temp_comp <- inner_join(temp1819,temp2020, by = c("ccaa", "producto"),suffix = c("_1819", "_2020"))
-
 
 temp_comp$volumen = ((temp_comp$volumen_2020 - temp_comp$volumen_1819) / temp_comp$volumen_1819)*100
 temp_comp$valor = ((temp_comp$valor_2020 - temp_comp$valor_1819) / temp_comp$valor_1819)*100
@@ -191,10 +203,10 @@ colnames(consumo)
 medidas <- c("volumen" , "valor" , "precio")
 productos <- unique(consumo$producto)
 productos <- productos[productos!= 'Frutas frescas']
-epoca <- unique(consumo$Olas)
+epoca11 <- unique(consumo_resta$Olas)
 ccaa <- unique(consumo$ccaa)
 data_spain11 <- consumo_resta %>% 
-  group_by(ccaa, producto) %>% 
+  group_by(ccaa, producto, Olas) %>% 
   summarise(mean=mean(.data[[paste0('volumen', '_resta')]], na.rm = TRUE))
 
 
@@ -258,24 +270,38 @@ ui <- dashboardPage(
                      tabPanel("Impacto general",
                               fluidRow(
                                 
-                                column(4, 
-                                       radioGroupButtons('select_variable11', label = 'Medida', choices= medidas, status = "primary", selected = medidas[3])
+                                column(3, 
+                                       radioGroupButtons('select_variable11', label = 'Medida', choices= medidas, status = "primary", selected = medidas[3]),
+                                       bsTooltip("select_variable11", "Datos en miles de kg",
+                                                 "bottom", options = list(container = "body"))
+                                ),
+                               
+                                column(2,
+                                       pickerInput('select_epoca11', label = 'Epoca', choices= epoca11, selected = epoca11[1])
+                                       
                                 ),
                                 column(2,
                                        pickerInput('select_ccaa11', label = 'CCAA', choices= ccaa, selected = ccaa[2])
-
+                                       
                                 ),
                                 column(3, 
                                        pickerInput('select_producto11', label ='Producto', choices= productos , selected= productos[4])
-                                ),
-                                
-                                box(
-                                  title = "Cuantificando el impacto del virus", width = 3, solidHeader = TRUE,background = "light-blue",
-                                  "¿Y si predecimos lo ocurrido de no haber existido la pandemia?"),
-                                h4(paste("    ",'¿Impacto  negativo o positivo?'))
-                                
+                                )
                               ),
-                              
+                                
+                                fluidRow(
+                                  column(5,
+                                         h4(paste('¿Impacto  negativo o positivo?'))
+                                  ),
+                                  column(7,
+                                          box(
+                                          title = "Cuantificando el impacto del virus", width = 7 , solidHeader = TRUE,background = "light-blue",
+                                          "¿Y si predecimos lo ocurrido de no haber existido la pandemia?")
+                                  )
+   
+                              ),
+                                
+                                
                               fluidRow(
                                 box(tmapOutput(outputId = "my_tmap", height = 250),width = 5,solidHeader = TRUE),
                                 
@@ -293,7 +319,9 @@ ui <- dashboardPage(
                               
                               fluidRow(
                                 column(4, 
-                                       radioGroupButtons('select_variable12', label = 'Medida', choices= medidas, status = "primary", selected = medidas[3])
+                                       radioGroupButtons('select_variable12', label = 'Medida', choices= medidas, status = "primary", selected = medidas[3]),
+                                       bsTooltip("select_variable12", "Datos en miles de kg",
+                                                 "bottom", options = list(container = "body"))
                                 ),
                                 column(2,
                                        pickerInput('select_ccaa12', label = 'CCAA', choices= ccaa, selected = ccaa[2])
@@ -345,19 +373,24 @@ ui <- dashboardPage(
                                 tabPanel('Productos',
                                          fluidRow(
                                            column(4, 
-                                                  radioGroupButtons('select_variable211', label = 'Medida', choices= medidas, status = "primary", selected = medidas[3])
+                                                  radioGroupButtons('select_variable211', label = 'Medida', choices= medidas, status = "primary", selected = medidas[3]),
+                                                  bsTooltip("select_variable211", "Datos en miles de kg",
+                                                            "bottom", options = list(container = "body"))
                                            ),
                                            column(3, 
                                                   pickerInput('select_producto211', label ='Producto', choices= productos , selected= productos[4])
                                            ),
-                                           column(5, 
-                                                  h1(' ')
+                                           column(5,
+                                                  dateRangeInput('select_date211', 'Rango de fecha', start = min(consumo$date, na.rm = TRUE), end = max(consumo$date, na.rm = TRUE), min = min(consumo$date, na.rm = TRUE),
+                                                                 max = max(consumo$date, na.rm = TRUE), startview = "month", weekstart = 0,
+                                                                 language = "en", separator = " to ", width = NULL)
                                            ),
+                                      
                                            box(
                                              title = "¿Donde triunfa cada producto?", width = 3, solidHeader = TRUE,background = "light-blue",
                                              "Analicemos como varian las caracteristicas de los productos en cada ccaa"
                                            )
-                                         ),
+                                        ),
                                          
                                          tmapOutput(outputId = "mapa211", height = 250)
                                          
@@ -367,21 +400,24 @@ ui <- dashboardPage(
                                 tabPanel('Comparacion productos',
                                          fluidRow(
                                            column(4, 
-                                                  radioGroupButtons('select_variable212', label = 'Medida', choices= medidas, status = "primary", selected = medidas[2])
+                                                  radioGroupButtons('select_variable212', label = 'Medida', choices= medidas, status = "primary", selected = medidas[2]),
+                                                  bsTooltip("select_variable212", "Datos en miles de kg",
+                                                            "bottom", options = list(container = "body"))
                                            ),
                                            column(2,
                                                   pickerInput('select_ccaa212', label = 'CCAA', choices= ccaa, selected = ccaa[2])
                                                   
                                            ),
-
+                                           
                                            column(3,
                                                   pickerInput('select_producto212', label ='Producto', choices= productos , selected= c(productos[1],productos[2],productos[3],productos[4]), multiple = TRUE, options = 
                                                                 pickerOptions(
-                                                                  actionsBox = TRUE,
-                                                                  title = "Seleccione varios productos para compararlos",
-                                                                  header = "Seleccione varios productos para compararlos"))
+                                                                  actionsBox = TRUE)),
+                                                  bsTooltip("select_producto212", "Seleccione varios productos para compararlos",
+                                                            "bottom", options = list(container = "body"), trigger = 'focus')
+                                                  
                                            ),
-
+                                           
                                            box(
                                              title = "Comparemos los productos entre si", width = 3, solidHeader = TRUE,background = "light-blue",
                                              "Selecciona los productos y la CCAA")
@@ -472,6 +508,7 @@ server <- function(input, output) {
   # MAPA 11
   output$my_tmap <- renderTmap({
     data_spain11 <- consumo_resta %>% 
+      filter(Olas == input$select_epoca11) %>% 
       group_by(ccaa, producto) %>% 
       summarise(mean=mean(.data[[paste0(input$select_variable11, '_resta')]], na.rm = TRUE))
     
@@ -659,7 +696,7 @@ server <- function(input, output) {
   })
   
   
-  # EVOLUCION 211
+  # EVOLUCION 211 comp
   
   output$evolucomp212 <- renderPlot({
     
@@ -681,7 +718,7 @@ server <- function(input, output) {
       theme(axis.text.x = element_text(angle=45, hjust = 1), panel.grid.minor = element_blank()) 
   })
   
-  
+
   # MAPA 211
   output$mapa211 <- renderTmap({
     data_spain211 <- data_spain
@@ -708,7 +745,9 @@ server <- function(input, output) {
   
   output$mapacalor211 <- renderPlot({             
     
-    df211_a<- filter(consumo, producto == input$select_producto211)
+    df211_a<- filter(consumo, producto == input$select_producto211,
+                     date >= input$select_date211[1] &
+                     date <= input$select_date211[2])
     
     ggplot(df211_a, aes(date, ccaa)) + geom_tile(aes(fill = precio))+
       labs( x = "Fecha", y = "Comunidad Autonoma")+
@@ -751,13 +790,5 @@ server <- function(input, output) {
 
 
 shinyApp(ui, server)
-
-
-
-
-
-
-
-
 
 
