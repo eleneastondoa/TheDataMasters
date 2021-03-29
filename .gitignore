@@ -1,0 +1,7 @@
+/datos
+*.Rhistory
+*.csv
+*.xls
+*.xlsx
+*.ini
+*.ipynb_checkpoints/

@@ -1,4 +1,4 @@
-Sys.setlocale(locale = "spanish")
+dir_root <- 'D:/datathon_final/'
 # LIBRERIAS ---------------------------------------------------------------
 library(ggplot2)
 library(Hmisc)
@@ -42,7 +42,7 @@ addUnits <- function(n) {
   return(labels)
 }
 # CARGA DE DATOS ----------------------------------------------------------
-dir_in = 'C:/datathon_final'
+dir_in <- 'datos/datos_desarrollo'
 file1_in <- 'consumo_final.csv'
 file2_in <- 'precios.csv'
 file3_in <- 'data_total.csv'
@@ -148,7 +148,7 @@ library(sf)
 library(dplyr)
 library(stringi)
 
-dir_in_mapas <-  "C:/datathon_final/mapas"
+dir_in_mapas <-  "ccaa_mapita"
 file3_in <- 'Comunidades_Autonomas_ETRS89_30N.shp'
 autonomias <- read_sf(file.path(dir_in_mapas, file3_in))
 municipalities_spain<-st_set_geometry(autonomias,NULL)
