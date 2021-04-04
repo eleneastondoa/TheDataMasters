@@ -53,4 +53,15 @@ ggplot(don, aes_string(x='date', y='volumen', linetype='ccaa', color='producto')
   theme_bw()+
   theme(axis.text.x = element_text(angle=45, hjust = 1), panel.grid.minor = element_blank())
 
-  
+variable <- 'CERDA'
+aa <- paste(str(cat('hola\nadios', variable)))
+aa  
+paste('hola', 'adios', sep = '\n')
+tags$div('hola buenas cerda', tags$br(), 'gracias por nada', 'puta')
+
+prueba <- c('Primera' = 'Hola', 'Segunda' = 'Puta')
+prueba['Primera']
+
+names(which(prueba == 'Hola'))
+
+if (input$select_variable211 == 'valor') 'Ingreso total'
