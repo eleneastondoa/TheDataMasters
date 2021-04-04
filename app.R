@@ -53,7 +53,7 @@ precio <- read.csv(file.path(dir_in, file2_in), sep=',',  header = TRUE,fileEnco
 consumo <- read.csv(file.path(dir_in, file1_in), sep=';',  header = TRUE,fileEncoding = "UTF-8", stringsAsFactors = FALSE)
 consumo_pred <- read.csv(file.path(dir_in, file4_in), sep = ';', stringsAsFactors = F, fileEncoding = 'UTF-8')
 data_total <- read.csv(file.path(dir_in, file3_in), sep=',',  header = TRUE,fileEncoding = "UTF-8", stringsAsFactors = FALSE)
-consumo_pred[consumo_pred$ccaa == 'Cataluna', 'ccaa'] <- 'Cataluna'
+consumo_pred[consumo_pred$ccaa == 'Cataluna', 'ccaa'] <- 'Cataluña'
 
 data_total = data_total %>% 
   select(-X)
@@ -72,7 +72,7 @@ precio$inicio <- as.Date(precio$inicio)
 precio$fin <- as.Date(precio$fin)
 
 # Consumo
-consumo$date <- strptime(as.character(consumo$date), "%d/%m/%Y")
+#consumo$date <- strptime(as.character(consumo$date), "%d/%m/%Y")
 consumo$date <- as.Date(consumo$date)
 #consumo_pred$X  <- strptime(as.character(consumo_pred$X), "%d/%m/%Y")
 consumo_pred$X <- as.Date(consumo_pred$X)
@@ -93,9 +93,9 @@ consumo_resta <- consumo %>%
 
 consumo_resta <- consumo_resta %>% 
   filter(ccaa != 'Nacional', date != '2020-02-01')
+
 #Importaciones exportaciones
 data_total$Fecha <- as.Date(data_total$Fecha)
-
 consumo_resta_dos_epocas <- consumo_resta %>% group_by(producto, ccaa) %>% summarise(volumen_resta = mean(volumen_resta),
                                                                                      valor_resta = mean(valor_resta),
                                                                                      precio_resta = mean(precio_resta))
@@ -115,8 +115,6 @@ consumo_resta <- rbind(consumo_resta, consumo_resta_dos_epocas)
 
 library(lubridate)
 temp <- consumo %>% dplyr::mutate(year = lubridate::year(date), month = lubridate::month(date), day = lubridate::day(date))
-temp <- temp %>% filter(ccaa != 'Nacional')
-temp
 
 temp1819 <- temp %>% filter(year == 2018 | year == 2019) %>%  
   filter(month < Fecha_inicio) %>%  
@@ -168,7 +166,7 @@ municipalities_spain$Texto[municipalities_spain$Texto== "Comunidad De Madrid"] <
 municipalities_spain$Texto[municipalities_spain$Texto== "Region De Murcia"] <- 'Murcia'
 municipalities_spain$Texto[municipalities_spain$Texto== "Comunidad Foral De Navarra"] <- 'Navarra'
 municipalities_spain$Texto[municipalities_spain$Texto== "Comunidad Valenciana"] <- 'Valencia'
-municipalities_spain$Texto[municipalities_spain$Texto== "Cataluna"] <- 'Cataluna'
+municipalities_spain$Texto[municipalities_spain$Texto== "Cataluna"] <- 'Cataluña'
 municipalities_spain$Texto[municipalities_spain$Texto== "La Rioja"] <- 'La rioja'
 municipalities_spain$Texto[municipalities_spain$Texto== "Pais Vasco"] <- 'Pais vasco'
 
@@ -191,6 +189,7 @@ autonomias2$Texto[autonomias2$Texto== "Region De Murcia"] <- 'Murcia'
 autonomias2$Texto[autonomias2$Texto== "Comunidad Foral De Navarra"] <- 'Navarra'
 autonomias2$Texto[autonomias2$Texto== "Comunidad Valenciana"] <- 'Valencia'
 autonomias2$Texto[autonomias2$Texto== "La Rioja"] <- 'La rioja'
+autonomias2$Texto[autonomias2$Texto== "Cataluna"] <- 'Cataluña'
 
 autonomias3<-as_tibble(autonomias2)
 autonomias3<-st_sf(autonomias3)
@@ -209,7 +208,8 @@ consumo_top$year<-year(consumo_top$date)
 colnames(consumo)
 
 
-medidas <- c("volumen" , "valor" , "precio")
+variables <- c('Volumen de venta' = "volumen" , 'Ingresos totales' = "valor", 
+               'Precio' = "precio")
 productos <- unique(consumo$producto)
 productos <- productos[productos!= 'Frutas frescas']
 epoca11 <- unique(consumo_resta$Olas)
@@ -223,14 +223,14 @@ ccaa_top <- unique(consumo_top$ccaa)
 # UI ----------------------------------------------------------------------
 ui <- dashboardPage(
   
-  
+  title = 'UniversityHack 2021 TheDataMasters',
   # SIDEBAR  
   sidebar = dashboardSidebar(
-    
+    width = 87,
     #itemns
     sidebarMenu(
-      menuItem(text = "Covid", tabName = "tema1", icon = icon('bar-chart-o')), 
-      menuItem(text = "Agroanalisis",  tabName = "tema2",icon = icon('info-circle'))
+      menuItem(text = "Covid", tabName = "tema1", icon = icon('chart-bar')), 
+      menuItem(text = "",  tabName = "tema2",icon = icon('info-circle'))
     )
     
   ),
@@ -280,49 +280,39 @@ ui <- dashboardPage(
                      tabPanel("Impacto general",
                               fluidRow(
                                 
-                                column(3, 
-                                       radioGroupButtons('select_variable11', label = 'Medida', choices= medidas, status = "primary", selected = medidas[3]),
-                                       bsTooltip("select_variable11", "Volumen en miles de kg",
-                                                 "bottom", options = list(container = "body"))
+                                column(5, 
+                                       radioGroupButtons('select_variable11', label = 'Seleccione la variable', choices= variables, 
+                                                         selected = variables[3])
                                 ),
-                                
-                                column(2,
-                                       pickerInput('select_epoca11', label = 'Epoca', choices= epoca11, selected = epoca11[1])
-                                       
-                                ),
-                                column(2,
-                                       pickerInput('select_ccaa11', label = 'CCAA', choices= ccaa, selected = ccaa[2])
-                                       
+                                column(3,
+                                       selectInput('select_ccaa11', label = 'Seleccione la CCAA', choices= ccaa, selected = ccaa[2]),
+                                       tags$div(tags$style(HTML(".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))      
                                 ),
                                 column(3, 
-                                       pickerInput('select_producto11', label ='Producto', choices= productos , selected= productos[4])
+                                       selectInput('select_producto11', label ='Seleccione el producto', choices= productos , selected= productos[4]),
+                                       tags$div(tags$style(HTML( ".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))
                                 )
                               ),
                               
-                              fluidRow(
-                                column(5,
-                                       h4(paste('Impacto  negativo o positivo?'))
-                                ),
-                                column(7,
+                              column(6,
+                                     fluidRow(
                                        box(
-                                         title = "Cuantificando el impacto del virus", width = 7 , solidHeader = TRUE,background = "light-blue",
-                                         "Y si predecimos lo ocurrido de no haber existido la pandemia?")
-                                       
-                                )
-                                
+                                         title = "Cuantificando el impacto del virus", width = 12 , solidHeader = TRUE, background = "light-blue",
+                                         "¿Y si predecimos lo ocurrido de no haber existido la pandemia?")
+                                     ),
+                                     fluidRow(
+                                       box(plotOutput(outputId = 'grafico_evolucion', height = 250), width = 12, solidHeader = TRUE)
+                                     ) 
+                                     
                               ),
-                              
-                              
-                              fluidRow(
-                                box(tmapOutput(outputId = "my_tmap", height = 250),width = 5,solidHeader = TRUE),
-                                
-                                box(
-                                  plotOutput(outputId = "grafico_evolucion", height = 250),width = 7,solidHeader = TRUE)
-                                
+                              column(6,
+                                     fluidRow(
+                                       box('Mediante la resta de los datos recogidos durante la pandemia y las predicciones realizadas,
+                                        se visualiza el aumento/disminución que se ha dado en el precio y volumen de cada producto en consecuencia de la pandemia.', br(), ' ',
+                                           leafletOutput(outputId = "my_tmap", height = 290),width = 12)
+                                     )
+                                     
                               )
-                              
-                              
-                              
                      ),
                      
                      
@@ -330,35 +320,43 @@ ui <- dashboardPage(
                               
                               fluidRow(
                                 column(4, 
-                                       radioGroupButtons('select_variable12', label = 'Medida', choices= medidas, status = "primary", selected = medidas[3]),
-                                       bsTooltip("select_variable12", "Volumen en miles de kg",
-                                                 "bottom", options = list(container = "body"))
+                                       radioGroupButtons('select_variable12', label = 'Seleccione la variable', choices= variables,
+                                                         selected = variables[3])
                                 ),
                                 column(2,
-                                       pickerInput('select_ccaa12', label = 'CCAA', choices= ccaa, selected = ccaa[2])
+                                       selectInput('select_ccaa12', label = 'Seleccione la CCAA', choices= ccaa, selected = ccaa[2]),
+                                       tags$div(tags$style(HTML(".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))
                                        
                                 ),
-                                column(3, 
-                                       pickerInput('select_producto12', label ='Producto', choices= productos_en_comun , selected= productos[4])
+                                column(2, 
+                                       selectInput('select_producto12', label ='Seleccione el producto', choices= productos_en_comun, selected= productos[4]),
+                                       tags$div(tags$style(HTML( ".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))
                                 ),
-                                box(
-                                  title = "impacto en las temporadas", width = 3, solidHeader = TRUE,background = "light-blue",
-                                  "Y si visualizamos los datos de la temporada para cada producto?")
-                                
+                                column(4,
+                                       box(
+                                         title = 'Impacto en las temporadas', width = 12, background = 'light-blue',
+                                         solidHeader = TRUE, '¿Y si visualizamos los datos de la temporada para cada producto?'
+                                       )
+                                )
                               ),
                               
                               fluidRow(
-                                box(
-                                  title = "Antes del virus (2018-2019):", 
-                                  tmapOutput(outputId = "map12_1819", height = 400, width = 375), width = 5, solidHeader = TRUE),
-                                box(
-                                  title = "El virus ha supuesto cambios:", 
-                                  tmapOutput(outputId = "map12_2020", height = 400, width = 375), width = 5, solidHeader = TRUE),
-                                valueBoxOutput('boxtemp', width = 2),
-                                valueBoxOutput('progressBox', width = 2)
+                                column(5,
+                                       box(
+                                         "Datos: Previos al virus (2018-2019)", 
+                                         tmapOutput(outputId = "map12_1819", height = 250),width = 12,solidHeader = TRUE)
+                                ),
+                                column(5,
+                                       box(
+                                         "Datos: Durante el COVID-19", 
+                                         tmapOutput(outputId = "map12_2020", height = 250),width = 12,solidHeader = TRUE)
+                                ),
+                                column(2,
+                                       fluidRow(valueBoxOutput('boxtemp', width = 12)),
+                                       valueBoxOutput('progressBox', width = 15)
+                                )
+                                
                               )
-                              
-                              
                      ),
                      
                      
@@ -379,59 +377,64 @@ ui <- dashboardPage(
       #AGROANALISIS
       tabItem(tabName = "tema2",
               tabBox(width = 15, height = 2,
-                     tabPanel("Analisis general",
+                     tabPanel("Análisis general",
                               tabsetPanel(
                                 tabPanel('Productos',
                                          fluidRow(
                                            column(4, 
-                                                  radioGroupButtons('select_variable211', label = 'Medida', choices= medidas, status = "primary", selected = medidas[3]),
-                                                  bsTooltip("select_variable211", "Volumen en miles de kg",
-                                                            "bottom", options = list(container = "body"))
+                                                  radioGroupButtons('select_variable211', label = 'Seleccione la variable', choices= variables, 
+                                                                    selected = variables[3])
                                            ),
-                                           column(3, 
-                                                  pickerInput('select_producto211', label ='Producto', choices= productos , selected= productos[4])
+                                           column(2, 
+                                                  selectInput('select_producto211', label ='Seleccione el producto', choices= productos, selected= productos[4]),
+                                                  tags$div(tags$style(HTML( ".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))
                                            ),
-                                           column(5,
-                                                  dateRangeInput('select_date211', 'Rango de fecha', start = min(consumo$date, na.rm = TRUE), end = max(consumo$date, na.rm = TRUE), min = min(consumo$date, na.rm = TRUE),
+                                           column(3,
+                                                  dateRangeInput('select_date211', 'Seleccione rango temporal', start = min(consumo$date, na.rm = TRUE), end = max(consumo$date, na.rm = TRUE), min = min(consumo$date, na.rm = TRUE),
                                                                  max = max(consumo$date, na.rm = TRUE), startview = "month", weekstart = 0,
-                                                                 language = "en", separator = " to ", width = NULL)
+                                                                 language = "es", separator = "hasta", width = NULL)
                                            ),
-                                           
-                                           box(
-                                             title = "Donde triunfa cada producto?", width = 3, solidHeader = TRUE,background = "light-blue",
-                                             "Analicemos como varian las caracteristicas de los productos en cada ccaa"
+                                           column(3,
+                                                  box(
+                                                    title = "¿Dónde triunfa cada producto?", width = 12, solidHeader = TRUE,background = "light-blue",
+                                                    "Analicemos cómo varían las características de los productos en cada Comunidad Autónoma"
+                                                  )
                                            )
                                          ),
-                                         
-                                         tmapOutput(outputId = "mapa211", height = 250)
-                                         
+                                         fluidRow(
+                                           column(6,
+                                                  tmapOutput(outputId = "mapa211", height = 250)),
+                                           column(6,
+                                                  fluidRow(valueBoxOutput('precio211', width = 12))
+                                           )
+                                         )
                                 ),
                                 
                                 
-                                tabPanel('Comparacion productos',
+                                tabPanel('Comparación productos',
                                          fluidRow(
-                                           column(4, 
-                                                  radioGroupButtons('select_variable212', label = 'Medida', choices= medidas, status = "primary", selected = medidas[2]),
-                                                  bsTooltip("select_variable212", "Volumen en miles de kg",
-                                                            "bottom", options = list(container = "body"))
+                                           column(3, 
+                                                  radioGroupButtons('select_variable212', label = 'Seleccione la variable', choices= variables, 
+                                                                    selected = variables[2])
                                            ),
                                            column(2,
-                                                  pickerInput('select_ccaa212', label = 'CCAA', choices= ccaa, selected = ccaa[2])
+                                                  pickerInput('select_ccaa212', label = 'Seleccione la(s) CCAA', choices= ccaa, selected = ccaa[2],
+                                                              multiple = TRUE, pickerOptions(actionsBox = TRUE)),
+                                                  tags$div(tags$style(HTML( ".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))
                                                   
                                            ),
                                            
                                            column(3,
-                                                  pickerInput('select_producto212', label ='Producto', choices= productos , selected= c(productos[1],productos[2],productos[3],productos[4]), multiple = TRUE, options = 
+                                                  pickerInput('select_producto212', label ='Seleccione el/los producto/s', choices= productos , selected= c(productos[1],productos[2],productos[3],productos[4]), multiple = TRUE, options = 
                                                                 pickerOptions(
-                                                                  actionsBox = TRUE)),
-                                                  bsTooltip("select_producto212", "Seleccione varios productos para compararlos",
-                                                            "bottom", options = list(container = "body"), trigger = 'focus')
+                                                                  actionsBox = TRUE))
                                                   
                                            ),
-                                           
-                                           box(
-                                             title = "Comparemos los productos entre si", width = 3, solidHeader = TRUE,background = "light-blue",
-                                             "Selecciona los productos y la CCAA")
+                                           column(4,
+                                                  box(
+                                                    title = "Comparemos los productos entre sí", width = 12, solidHeader = TRUE,background = "light-blue",
+                                                    "Seleccione la Comunidad Autónoma y los productos")
+                                           )
                                            
                                          ),
                                          fluidRow(
@@ -441,18 +444,20 @@ ui <- dashboardPage(
                                          
                                          
                                 ),
-                                tabPanel('Economico',
+                                tabPanel('Económico',
                                          fluidRow(
                                            column(2, 
-                                                  pickerInput('select_ccaa213', label = 'CCAA', choices= ccaa, selected = ccaa[2])
+                                                  selectInput('select_ccaa213', label = 'Seleccione la CCAA', choices= ccaa, selected = ccaa[2]),
+                                                  tags$div(tags$style(HTML( ".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))
                                            ),
                                            column(3,
-                                                  pickerInput('select_producto213', label ='Producto', choices= productos , selected= productos[4])
+                                                  selectInput('select_producto213', label ='Seleccione el producto', choices= productos , selected= productos[4]),
+                                                  tags$div(tags$style(HTML( ".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))
                                            ),
                                            column(4, h1(' ')),
                                            box(
-                                             title = "Indicadores economicos", width = 5, solidHeader = TRUE,background = "light-blue",
-                                             "Analicemos la relacion entre el consumo y gasto per capita. Selecciona el producto y la ccaa a estudiar")
+                                             title = "Indicadores económicos", width = 5, solidHeader = TRUE,background = "light-blue",
+                                             "Analicemos la relación entre el consumo y el gasto per cápita. Seleccione el producto y la ccaa a estudiar")
                                            
                                          ),
                                          fluidRow(
@@ -470,11 +475,15 @@ ui <- dashboardPage(
                      tabPanel("Top productos",
                               fluidRow(
                                 column(3, 
-                                       pickerInput('select_ccaa22', label = 'CCAA', choices= ccaa_top, selected = ccaa[2])
+                                       selectInput('select_ccaa22', label = 'Seleccione CCAA', choices= ccaa_top, selected = ccaa[2]),
+                                       tags$div(tags$style(HTML( ".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))
                                 ),
+                                column(4,
+                                       numericInput('select_topp22', label = 'Seleccione número de productos (3 o más)', value = 4,
+                                                    min = 3, step = 1)),
                                 box(
                                   title = "Top Productos", width = 5, solidHeader = TRUE,background = "light-blue",
-                                  "Analicemos los productos mas consumidos en cada Comunidad Autonoma.")
+                                  "Analicemos los productos más consumidos en cada Comunidad Autonoma.")
                                 
                               ),
                               fluidRow(
@@ -500,8 +509,9 @@ ui <- dashboardPage(
   ## HEADER
   
   header = dashboardHeader(
+    titleWidth = 87,
     title = tagList(
-      span(class = 'logo-lg','UniversityHack 2021')),
+      span(class = 'logo-lg', 'Menu')),
     tags$li(class="dropdown", 
             tags$a(href="https://www.cajamardatalab.com/datathon-cajamar-universityhack-2020/", 
                    icon("web"))),
@@ -528,11 +538,25 @@ server <- function(input, output) {
   
   
   # COVID
+  output$box11 <- renderValueBox({
+    
+    valor <- consumo_resta %>%  filter(producto == input$select_producto11, 
+                                       ccaa == input$select_ccaa11) %>% 
+      summarise(mean=mean(.data[[paste0(input$select_variable11, '_resta')]], na.rm = TRUE))
+    
+    if(valor >= 0){
+      valueBox(value = NULL, paste('A raiz de la pandemia, el',input$select_variable11, 'medio de', input$select_producto11, 'ha aumentado ', round(valor,2), 'en', input$select_ccaa11 ), "Progress", icon = NULL,
+               color = "navy")
+    }else{
+      valueBox(value = NULL, paste('A raiz de la pandemia el',input$select_variable11, 'medio de', input$select_producto11, 'ha disminuido ', abs(round(valor,2)), 'en', input$select_ccaa11 ), "Progress", icon = NULL,
+               color = "navy")
+    }
+    
+  })
   
   # MAPA 11
-  output$my_tmap <- renderTmap({
+  output$my_tmap <- renderLeaflet({
     data_spain11 <- consumo_resta %>% 
-      filter(Olas == input$select_epoca11) %>% 
       group_by(ccaa, producto) %>% 
       summarise(mean=mean(.data[[paste0(input$select_variable11, '_resta')]], na.rm = TRUE))
     
@@ -546,14 +570,14 @@ server <- function(input, output) {
     
     pruebabuena11<-st_sf(map_data_spain11, st_geometry(autonomias3))
     
-    tm_shape(pruebabuena11,
-             name = paste('Mapa de', input$select_variable11),
-             simplify = 1,
-             line.center = "midpoint") +
+    hola <- tm_shape(pruebabuena11,
+                     name = paste('Mapa de', input$select_variable11),
+                     simplify = 1,
+                     line.center = "midpoint") +
       tm_polygons(col = "mean", palette = "RdBu", midpoint = 0,title = input$select_variable11) +
-      tm_view(view.legend.position = c('right', 'bottom'), set.view = c(-3,38,4))
+      tm_view(view.legend.position = c('right', 'bottom'), set.view = c(-3.7056721,40.4169019,5))
     
-    
+    tmap_leaflet(hola)
   })
   
   
@@ -566,22 +590,35 @@ server <- function(input, output) {
       filter(ccaa == input$select_ccaa11 &
                producto == input$select_producto11)
     
-    ggplot() +
+    p <- ggplot() +
       geom_line(data = df_evolucion, aes_string('date', input$select_variable11,
                                                 color = "'Real'"),size = 1)+
       geom_line(data = df_evolucion_pred, 
                 aes_string('X', paste0(input$select_variable11, '_predicted'), 
-                           color = "'Prediccion'"), size = 1, linetype = 'longdash')+
-      labs(y= str_to_title(input$select_variable11), 
+                           color = "'Predicción'"), size = 1, linetype = 'longdash')+
+      labs(y= paste(str_to_title(input$select_variable11), 
+                    if (input$select_variable11 == 'precio') '(€/kg)' 
+                    else if (input$select_variable11 == 'volumen') '(miles de kg)'
+                    else '(miles de €)'), 
            x = "Fecha",
-           title = paste("Evolucion del", input$select_variable11),
+           title = paste("Evolución del", input$select_variable11),
            subtitle = paste(df_evolucion$producto, 'para', df_evolucion$ccaa),
-           caption = "Data source: datathon") +
+           caption = "Fuente: Ministerio de Agricultura, Pesca y Alimentación") +
       scale_x_date(date_breaks = "2 month", date_labels = "%b%y") +
-      scale_color_manual(name = 'Dato:', values = c('Real' = 'steelblue1', 'Prediccion' = 'steelblue4'))+
-      expand_limits(y = 0)+
+      scale_color_manual(name = NULL, values = c('Real' = 'steelblue1', 'Predicción' = 'steelblue4'))+
       theme_bw()+
       theme(axis.text.x = element_text(angle=45, hjust = 1), panel.grid.minor = element_blank()) 
+    
+    rango_min <- ggplot_build(p)$layout$panel_scales_y[[1]]$range$range[1]
+    rango_max<- ggplot_build(p)$layout$panel_scales_y[[1]]$range$range[2]
+    
+    if (rango_min > rango_max*0.25){
+      fill_color <- brewer.pal(3, 'Blues')[2]
+      p <- p + annotate(geom = 'label', x = as.Date('2018-03-01'), 
+                        y = rango_min - rango_min*0.05, label = 'No empieza en 0',
+                        fill = fill_color)
+    }
+    p
   })
   
   
@@ -611,7 +648,7 @@ server <- function(input, output) {
     vector = c(min,max)
     vector = quantile(vector)
     vector = as.vector(vector)
-     
+    
     
     map_data_spain12_1819 <- map_data_spain12_1819 %>% group_by(producto,Texto) %>% summarise(mean=mean(mean))
     pruebabuena12_1819<-st_sf(map_data_spain12_1819 , st_geometry(autonomias3))
@@ -661,8 +698,8 @@ server <- function(input, output) {
              name = paste('Mapa de', input$select_variable12),
              simplify = 1,
              line.center = "midpoint") +
-      tm_polygons(col = "mean", breaks = round(vector,2), legend.show = FALSE,  palette = "RdBu", midpoint = 0,title = input$select_variable12) +
-      tm_view(view.legend.position = c('right', 'bottom'), set.view = c(-3,38,4))
+      tm_polygons(col = "mean", breaks = round(vector,2), legend.show = TRUE,  palette = "RdBu", midpoint = 0,title = input$select_variable12) +
+      tm_view(view.legend.position = c('right', 'bottom'), set.view = c(-3.7056721,40.4169019,5))
     
   })
   
@@ -679,14 +716,14 @@ server <- function(input, output) {
       scale_x_date(date_breaks = '4 month', date_labels = '%Y-%b')+
       scale_fill_manual(values = c('steelblue3', 'tomato3'))+
       scale_color_manual(name = '', values = 'Black')+
-      labs(y = 'Valor (kg/euro)')+
+      labs(y = 'Valor (kg/€)')+
       theme_bw()+
       theme(axis.text = element_text(angle = 45, hjust = 1), 
             panel.grid.minor = element_blank()) +
       labs(y = 'Ingresos',
            title = 'Balance de las importaciones y exportaciones',
-           subtitle = 'Datos para Espana, sector agroalimentario',
-           caption = "Data source: datathon")
+           subtitle = 'Datos para España, sector agroalimentario',
+           caption = "Fuente: Eurostat")
   })
   
   
@@ -694,19 +731,25 @@ server <- function(input, output) {
   
   
   
-  # AGROANALISIS
+  # AGROANÁLISIS
   
   # top productos 
   
   output$top_productos_2020 <- renderPlot({
-    
     top_2020<- consumo_top %>% filter(year == 2020) %>% 
       select(year, producto, ccaa, valor) %>% group_by(producto,ccaa) %>%
       summarise(valor = mean(valor)) %>% filter(ccaa == input$select_ccaa22) %>% 
-      arrange(desc(valor)) %>%  head(4) %>% spread(producto, valor)
+      arrange(desc(valor)) %>%  head(input$select_topp22) %>% spread(producto, valor)
     
-    table_spider_1 <- rbind(apply(X= top_2020[,-1] , MARGIN=1, FUN=max),rep(0,times=4), top_2020[,-1])
     nombres<- colnames(top_2020)
+    
+    top_2019 <- consumo_top %>% filter(year == 2019) %>% 
+      select(year, producto, ccaa, valor ) %>% group_by(producto,ccaa) %>%
+      summarise(valor = mean(valor)) %>% filter(ccaa == input$select_ccaa22) %>% 
+      arrange(desc(valor))%>%filter(producto %in% nombres)%>% spread(producto, valor)
+    
+    table_spider_1 <- rbind(apply(X= top_2020[,-1] , MARGIN=1, FUN=max), 
+                            rep(0,times=input$select_topp22), top_2020[,-1], top_2019[,-1])
     
     coul <- brewer.pal(3, "BuPu")
     colors_border <- coul
@@ -726,10 +769,17 @@ server <- function(input, output) {
     top_2019 <- consumo_top %>% filter(year == 2019) %>% 
       select(year, producto, ccaa, valor) %>% group_by(producto,ccaa) %>%
       summarise(valor = mean(valor)) %>% filter(ccaa == input$select_ccaa22) %>% 
-      arrange(desc(valor)) %>%  head(4) %>% spread(producto, valor)
+      arrange(desc(valor)) %>%  head(input$select_topp22) %>% spread(producto, valor)
     
-    table_spider_2 <- rbind(apply(X= top_2019[,-1] , MARGIN=1, FUN=max),rep(0,times=4), top_2019[,-1])
-    nombres<- colnames(top_2019)
+    nombres_2 <- colnames(top_2019)
+    
+    top_2020 <- consumo_top %>% filter(year == 2020) %>% 
+      select(year, producto, ccaa, valor ) %>% group_by(producto,ccaa) %>%
+      summarise(valor = mean(valor)) %>% filter(ccaa == input$select_ccaa22) %>% 
+      arrange(desc(valor))%>%filter(producto %in% nombres_2)%>% spread(producto, valor)
+    
+    table_spider_2 <- rbind(apply(X= top_2019[,-1] , MARGIN=1, FUN=max),
+                            rep(0,times=input$select_topp22), top_2019[,-1], top_2020[,-1])
     
     coul <- brewer.pal(3, "BuPu")
     colors_border <- coul
@@ -755,8 +805,8 @@ server <- function(input, output) {
       geom_bar(aes(y = consumo_per_capita, fill = "Consumo"), stat = 'identity') +
       geom_line(aes(y = gasto_per_capita, color = "Gasto"), size = 1) +
       
-      xlab("Fecha") + 
-      scale_y_continuous("Consumo per capita (kg)", 
+      labs(x = "Fecha", caption = 'Fuente: Ministerio de Agricultura, Pesca y Alimentación') + 
+      scale_y_continuous("Consumo per cápita (kg)", 
                          sec.axis = sec_axis(~.*1, 
                                              name = 'Gasto por capita (euro/kg)')) +
       
@@ -773,19 +823,23 @@ server <- function(input, output) {
   # COmparacion de precios 211 
   output$evolucomp212 <- renderPlot({
     
-    don<- filter(consumo, ccaa == input$select_ccaa212 & 
+    don<- filter(consumo, ccaa %in% input$select_ccaa212 & 
                    producto %in% input$select_producto212
     )
     
-    ggplot(don, aes_string(x='date', y=input$select_variable212, group='producto', color='producto')) +
+    ggplot(don, aes_string(x='date', y=input$select_variable212, color='producto', linetype='ccaa')) +
       geom_line() +
       geom_point() +
-      labs(y= input$select_variable212, 
+      labs(y= paste(str_to_title(input$select_variable212), 
+                    if (input$select_variable212 == 'precio') '(€/kg)' 
+                    else if (input$select_variable212 == 'volumen') '(miles de kg)'
+                    else '(miles de €)'), 
            x = "Fecha",
            title = input$select_variable212,
            subtitle = paste(don$producto, 'para', don$ccaa),
-           caption = "Data source: datathon") +
-      scale_x_date(date_breaks = "2 month", date_labels = "%b%y") +
+           caption = "Fuente: Ministerio de Agricultura, Pesca y Alimentación",
+           color = 'Producto (color)', linetype = 'CCAA (tipo de línea)') +
+      scale_x_date(date_breaks = "2 month", date_labels = "%Y-%b") +
       expand_limits(y= 0)+
       theme_bw()+
       theme(axis.text.x = element_text(angle=45, hjust = 1), panel.grid.minor = element_blank()) 
@@ -813,6 +867,27 @@ server <- function(input, output) {
     
   })
   
+  # BOX 211: caracteristicas
+  output$precio211 <- renderValueBox({
+    
+    data_spain211 <-data_spain %>% group_by(ccaa,producto) %>% summarise(mean=mean(.data[[input$select_variable211]],na.rm = TRUE))
+    maximo <- data_spain211 %>% filter(producto == input$select_producto211) %>% arrange(desc(mean)) %>%  head(1)
+    minimo <- data_spain211 %>% filter(producto == input$select_producto211) %>% arrange(mean) %>%  head(1)
+    
+    valueBox(input$select_producto211, tags$div('-El', if (input$select_variable211 == 'valor') 'ingreso total' 
+                                                else tolower(names(which(variables == input$select_variable211))), 
+                                                'más alto se ha registrado en', str_to_title(maximo$ccaa), 'siendo este' , 
+                                                paste0(round(maximo$mean,2), ' ',
+                                                       if (input$select_variable211 == 'precio') '€/kg' 
+                                                       else if (input$select_variable211 == 'volumen') 'miles de kg'
+                                                       else 'miles de €', '.'), tags$br(), '-El ', if (input$select_variable211 == 'valor') 'ingreso total' 
+                                                else tolower(names(which(variables == input$select_variable211))), 
+                                                'más bajo se ha registrado en', str_to_title(minimo$ccaa), 'siendo este', 
+                                                paste0(round(minimo$mean,2), ' ',
+                                                       if (input$select_variable211 == 'precio') '€/kg' 
+                                                       else if (input$select_variable211 == 'volumen') 'miles de kg'
+                                                       else 'miles de €', '.')), "Progress", icon = NULL, color = "navy")
+  })
   
   # BOX PROGRESO 11
   output$progressBox <- renderValueBox({
@@ -838,8 +913,8 @@ server <- function(input, output) {
     boxtemp <- filter(consumo, producto == input$select_producto12) %>% 
       select(Temporada) %>% head(1)
     
-    valueBox(value = NULL, paste('La temporada para',input$select_producto12, 'es:', boxtemp), "Progress", icon = NULL,
-             color = "navy")
+    valueBox(value = NULL, paste('La temporada para', input$select_producto12, 'es:', boxtemp), "Progress", icon = NULL,
+             color = "aqua")
   })
   
 }
