@@ -22,7 +22,6 @@ library(tidyr)
 library(rintrojs)
 library(shinyBS)
 library(shinyjs)
-library(shinydashboardPlus)
 library(shinyAce)
 library(styler)
 library(shinyEffects)
@@ -36,6 +35,9 @@ library(treemap)
 library(remotes)
 library(fmsb)
 library(chron)
+library(tmap)
+library(sf)
+library(stringi)
 options(scipen = 999)
 
 # Funciones a utilizar ----------------------------------------------------
@@ -112,9 +114,6 @@ consumo_resta_dos_epocas <- consumo_resta %>% group_by(producto, ccaa) %>% summa
 
 
 # TEMPORADA ---------------------------------------------------------------
-
-
-library(lubridate)
 temp <- consumo %>% dplyr::mutate(year = lubridate::year(date), month = lubridate::month(date), day = lubridate::day(date))
 temp <- temp %>% filter(ccaa != 'Nacional')
 temp
@@ -143,12 +142,6 @@ temp1819 <- temp1819 %>% filter(producto %in% productos_en_comun)
 temp2020 <- temp2020 %>% filter(producto %in% productos_en_comun)
 
 # MAPAS ----------------------------------------------------------
-
-library(tmap)
-library(sf)
-library(dplyr)
-library(stringi)
-
 dir_in_mapas <-  "ccaa_mapita"
 file3_in <- 'Comunidades_Autonomas_ETRS89_30N.shp'
 autonomias <- read_sf(file.path(dir_in_mapas, file3_in))
