@@ -1,4 +1,4 @@
-# Gráfico 11 --------------------------------------------------------------
+# Líneas 11 --------------------------------------------------------------
 df_evolucion1 <- filter(consumo, ccaa == 'Andalucia' & 
                          producto == 'Patatas')
 df_evolucion_pred1 <- consumo_pred %>% 
@@ -117,64 +117,78 @@ tm_shape(pruebabuena12_1819,
 # Radarcharts 22 ---------------------------------------------------------
 top_2020<- consumo_top %>% filter(year == 2020) %>% 
   select(year, producto, ccaa, valor) %>% group_by(producto,ccaa) %>%
-  summarise(valor = mean(valor)) %>% filter(ccaa == 'Andalucia') %>% 
+  summarise(valor = mean(valor))  %>% filter(ccaa == 'Andalucía') %>% 
   arrange(desc(valor)) %>%  head(4) %>% spread(producto, valor)
 
 nombres<- colnames(top_2020)
 
 top_2019_20 <- consumo_top %>% filter(year == 2019) %>% 
   select(year, producto, ccaa, valor) %>% group_by(producto,ccaa) %>%
-  summarise(valor = mean(valor)) %>% filter(ccaa == 'Andalucia') %>% 
+  summarise(valor = mean(valor)) %>% filter(ccaa == 'Andalucía') %>% 
   arrange(desc(valor))%>%filter(producto %in% nombres)%>% spread(producto, valor)
 
 
 table_spider_1 <- rbind(max(top_2020[,-1], top_2019_20[,-1]), 
                         rep(0,times = 4), top_2020[,-1], top_2019_20[,-1])
+
 table_spider_1 <- as.data.frame(table_spider_1)
-rownames(table_spider_1) <- c('Máximo', 'Mínimo', '2020', '2019')
+rownames(table_spider_1) <- c('Máximo', 'Mínimo', 'Pandemia', 'Normalidad')
 
 top_2019 <- consumo_top %>% filter(year == 2019) %>% 
   select(year, producto, ccaa, valor) %>% group_by(producto,ccaa) %>%
-  summarise(valor = mean(valor)) %>% filter(ccaa == 'Andalucia') %>% 
+  summarise(valor = mean(valor)) %>% filter(ccaa == 'Andalucía') %>% 
   arrange(desc(valor)) %>%  head(4) %>% spread(producto, valor)
 
 nombres_2 <- colnames(top_2019)
 
 top_2020_19 <- consumo_top %>% filter(year == 2020) %>% 
   select(year, producto, ccaa, valor ) %>% group_by(producto,ccaa) %>%
-  summarise(valor = mean(valor)) %>% filter(ccaa == 'Andalucia') %>% 
+  summarise(valor = mean(valor)) %>% filter(ccaa == 'Andalucía') %>% 
   arrange(desc(valor))%>%filter(producto %in% nombres_2)%>% spread(producto, valor)
 
 table_spider_2 <- rbind(max(top_2019[,-1], top_2020_19[,-1]),
                         rep(0,times = 4), top_2020_19[,-1], top_2019[,-1])
 table_spider_2 <- as.data.frame(table_spider_2)
-rownames(table_spider_2) <- c('Máximo', 'Mínimo', '2020', '2019')
+rownames(table_spider_2) <- c('Máximo', 'Mínimo', 'Pandemia', 'Normalidad')
 
 names1 <- names(table_spider_1)
 names2 <- names(table_spider_2)
 coincident_columns <- intersect(names1, names2)
-not_coincident_columns <- setdiff(names1, names2)
+names1 <- c('a', 'b')
+names2 <- c('b', 'a')
+not_coincident_columns1 <- setdiff(names1, names2)
+not_coincident_columns2 <- setdiff(names2, names1)
+length(not_coincident_columns2)
+
+
+incremento <- ((table_spider_2['Pandemia', coincident_columns] - 
+                  table_spider_2['Normalidad', coincident_columns])/
+                 table_spider_2['Normalidad', coincident_columns])*100
+incremento <- rowMeans(incremento)
 
 colors_border <- rgb(0.2,0.5,0.5,0.9)
 colors_in <- c(rgb(0.2,0.5,0.5,0.4), rgb(0.8,0.2,0.5,0.4))
 
+par(mfrow = c(1, 2), oma = c(0, 0, 2, 0))
 a1<- radarchart(table_spider_1, pcol=colors_border , pfcol= colors_in,
                 plwd=1, cglcol="grey", cglty=1, axislabcol="azure4", axistype = 1, calcex = 0.8,
                 caxislabels=seq(0, round(max(table_spider_1), 0), round(max(table_spider_1)/8, 0)),
-                vlcex=0.8, title= paste('Andalucia', '2020'), seg = 7)
+                vlcex=0.8, title= 'En época de pandemia', seg = 7)
 a1
 
-legend(x=0.8, y=1.1, legend = rownames(table_spider_1[-c(1,2),]), bty = "n", pch=20 , 
-       col=colors_in , text.col = "azure4", cex=1.2, pt.cex=3)
+legend(x='bottomleft', legend = rownames(table_spider_1[-c(1,2),]), bty = "n", pch=20 , 
+       col=colors_in , text.col = "azure4", cex=0.9, pt.cex=2)
 
 b <- radarchart(table_spider_2, pcol=colors_border , pfcol=colors_in, 
                 plwd=1, cglcol="grey", cglty=1, axislabcol="azure4", axistype = 1, calcex = 0.8,
                 caxislabels = seq(0, round(max(table_spider_2), 0), round(max(table_spider_2)/8, 0)),
-                vlcex = 0.8, title = paste('Andalucia', '2019'), seg = 7)
+                vlcex = 0.8, title = 'En normalidad', seg = 7)
 b
 
-legend(x=0.8, y=1.1, legend = rownames(table_spider_2[-c(1,2),]), bty = "n", pch=20 , 
-       col=colors_in , text.col = "azure4", cex = 1.2, pt.cex=3)
+legend(x='bottomleft', legend = rownames(table_spider_1[-c(1,2),]), bty = "n", pch=20 , 
+       col=colors_in , text.col = "azure4", cex=0.9, pt.cex=2)
+mtext('Top productos en Andalucía', outer = T, cex = 1.5)
+
 
 # Radarchart 22 2020 ----------------------------------------------------------
 top_2020<- consumo_top %>% filter(year == 2020) %>% 
@@ -210,14 +224,14 @@ legend(x='bottomleft', legend = rownames(table_spider_1[-c(1,2),]), bty = "n", p
 # Radarchart 22 2019 ------------------------------------------------------
 top_2019 <- consumo_top %>% filter(year != 2020) %>% 
   select(year, producto, ccaa, valor) %>% group_by(producto,ccaa) %>%
-  summarise(valor = mean(valor)) %>% filter(ccaa == 'Andalucia') %>% 
+  summarise(valor = mean(valor)) %>% filter(ccaa == 'Andalucía') %>% 
   arrange(desc(valor)) %>%  head(4) %>% spread(producto, valor)
 
 nombres_2 <- colnames(top_2019)
 
 top_2020_19 <- consumo_top %>% filter(year == 2020) %>% 
   select(year, producto, ccaa, valor ) %>% group_by(producto,ccaa) %>%
-  summarise(valor = mean(valor)) %>% filter(ccaa == 'Andalucia') %>% 
+  summarise(valor = mean(valor)) %>% filter(ccaa == 'Andalucía') %>% 
   arrange(desc(valor))%>%filter(producto %in% nombres_2)%>% spread(producto, valor)
 
 table_spider_2 <- rbind(max(top_2019[,-1], top_2020_19[,-1]),
@@ -245,7 +259,125 @@ b
 
 legend(x=0.8, y=1.1, legend = rownames(table_spider_2[-c(1,2),]), bty = "n", pch=20 , 
        col=colors_in , text.col = "azure4", cex = 1.2, pt.cex=3)
+mtext(side=3, line=0.5, at=-0.3, adj=0, cex=1, 'hola')
 
 
 
 
+# Radarcharts shiny -------------------------------------------------------
+output$top_productos_2019 <- renderPlot({
+  table_spider_2 <- table_spider_2()
+  table_spider_1 <- table_spider_1()
+  rownames(table_spider_2) <- c('Máximo', 'Mínimo', 'Pandemia', 'Normalidad')
+  names1 <- names(table_spider_1)
+  names2 <- names(table_spider_2)
+  coincident_columns <- intersect(names1, names2)
+  not_coincident_columns <- setdiff(names1, names2)
+  
+  table_spider_1 <- table_spider_1 %>% 
+    select(coincident_columns, everything())
+  
+  table_spider_2 <- table_spider_2 %>% 
+    select(coincident_columns, everything())
+  colors_border <- rgb(0.2,0.5,0.5,0.9)
+  colors_in <- c(rgb(0.2,0.5,0.5,0.4), rgb(0.8,0.2,0.5,0.4))
+  
+  b <- radarchart(table_spider_2, pcol=colors_border , pfcol=colors_in, 
+                  plwd=1, cglcol="grey", cglty=1, axislabcol="azure4", axistype = 1, calcex = 0.8,
+                  caxislabels = seq(0, round(max(table_spider_2), 0), 
+                                    round(max(table_spider_2)/8, 0)),
+                  vlcex = 0.8, title = 'Top productos en época de normalidad', seg = 7)
+  b
+  legend(x='bottomleft', legend = rownames(table_spider_2[-c(1,2),]), bty = "n", pch=20 , 
+         col=colors_in , text.col = "azure4", cex=0.9, pt.cex=2)
+  
+  
+})
+
+output$top_productos_2020 <- renderPlot({
+  table_spider_1 <- table_spider_1()
+  table_spider_2 <- table_spider_2()
+  rownames(table_spider_1) <- c('Máximo', 'Mínimo', 'Pandemia', 'Normalidad')
+  names1 <- names(table_spider_1)
+  names2 <- names(table_spider_2)
+  coincident_columns <- intersect(names1, names2)
+  not_coincident_columns <- setdiff(names1, names2)
+  
+  table_spider_1 <- table_spider_1 %>% 
+    select(coincident_columns, everything())
+  
+  table_spider_2 <- table_spider_2 %>% 
+    select(coincident_columns, everything())
+  
+  colors_border <- rgb(0.2,0.5,0.5,0.9)
+  colors_in <- c(rgb(0.2,0.5,0.5,0.4), rgb(0.8,0.2,0.5,0.4))
+  
+  a1<- radarchart(table_spider_1, pcol=colors_border , pfcol= colors_in,
+                  plwd=1, cglcol="grey", cglty=1, axislabcol="azure4", axistype = 1, calcex = 0.8,
+                  caxislabels=seq(0, round(max(table_spider_1), 0), 
+                                  round(max(table_spider_1)/8, 0)),
+                  vlcex=0.8, title = 'Top productos en pandemia', seg = 7)
+  a1
+  legend(x='bottomleft', legend = rownames(table_spider_1[-c(1,2),]), bty = "n", pch=20 , 
+         col=colors_in , text.col = "azure4", cex=0.9, pt.cex=2)
+  
+})
+
+# Radarchart grande shiny -------------------------------------------------
+output$top_productos <- renderPlot({
+  table_spider_2 <- table_spider_2()
+  table_spider_1 <- table_spider_1()
+  rownames(table_spider_2) <- c('Máximo', 'Mínimo', 'Pandemia', 'Normalidad')
+  names1 <- names(table_spider_1)
+  names2 <- names(table_spider_2)
+  coincident_columns <- intersect(names1, names2)
+  not_coincident_columns <- setdiff(names1, names2)
+  
+  table_spider_1 <- table_spider_1 %>% 
+    select(coincident_columns, everything())
+  
+  table_spider_2 <- table_spider_2 %>% 
+    select(coincident_columns, everything())
+  colors_border <- rgb(0.2,0.5,0.5,0.9)
+  colors_in <- c(rgb(0.2,0.5,0.5,0.4), rgb(0.8,0.2,0.5,0.4))
+  
+  par(mfrow = c(1, 2), oma = c(0, 0, 2, 0))
+  mtext(paste('Top productos en', input$select_ccaa22), outer = T, cex = 1.5)
+  b <- radarchart(table_spider_2, pcol=colors_border , pfcol=colors_in, 
+                  plwd=1, cglcol="grey", cglty=1, axislabcol="azure4", axistype = 1, calcex = 0.8,
+                  caxislabels = seq(0, round(max(table_spider_2), 0), 
+                                    round(max(table_spider_2)/8, 0)),
+                  vlcex = 0.8, title = 'Top productos en época de normalidad', seg = 7)
+  b
+  legend(x='bottomleft', legend = rownames(table_spider_2[-c(1,2),]), bty = "n", pch=20 , 
+         col=colors_in , text.col = "azure4", cex=0.9, pt.cex=2)
+  
+  a1<- radarchart(table_spider_1, pcol=colors_border , pfcol= colors_in,
+                  plwd=1, cglcol="grey", cglty=1, axislabcol="azure4", axistype = 1, calcex = 0.8,
+                  caxislabels=seq(0, round(max(table_spider_1), 0), 
+                                  round(max(table_spider_1)/8, 0)),
+                  vlcex=0.8, title = 'Top productos en pandemia', seg = 7)
+  a1
+  legend(x='bottomleft', legend = rownames(table_spider_1[-c(1,2),]), bty = "n", pch=20 , 
+         col=colors_in , text.col = "azure4", cex=0.9, pt.cex=2)
+  
+})
+# Mapa 11 -----------------------------------------------------------------
+a <- 4
+paste(as.character(a), 'buenas')
+
+as.character(a)
+
+# Correción errores autonomías mapas --------------------------------------
+map_data_spain11 <- municipalities_spain %>% 
+  left_join(data_spain11, by = c("Texto"="ccaa")) %>% 
+  filter(producto == 'Patatas') %>% 
+  group_by(Codigo, Texto, producto) %>% 
+  summarise(mean = mean(mean))
+
+pruebabuena11<-st_sf(map_data_spain11, st_geometry(autonomias3))
+pruebabuena11$variable <- names(which(variables == input$select_variable11))
+pruebabuena11$valor_variable <- paste(as.character(round(pruebabuena11$mean, 2)), 
+                                      if (input$select_variable11 == 'precio') '€/kg'
+                                      else if (input$select_variable11 == 'volumen') 'miles de kg'
+                                      else 'miles de €')
