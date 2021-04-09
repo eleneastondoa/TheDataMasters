@@ -309,7 +309,50 @@ nc_names <- nnc %>%
 
 
 
+# SALUD -------------------------------------------------------------------
+file_salud_in <- 'salud.csv'
+salud <- read.csv(file.path(dir_in, file_salud_in), sep=';',  header = TRUE,fileEncoding = "UTF-8", stringsAsFactors = FALSE)
+
+salud$Producto <- str_to_title(salud$Producto)
+bebidas <- c("Total Vinos","Cervezas","Sidras" ,"T.bebidas Espirituosa")
+bebidas_rows <- salud %>% filter(Producto %in% bebidas) %>% group_by(Fecha) %>% summarize(CONSUMO.X.CAPITA = sum(CONSUMO.X.CAPITA), VALOR..Miles.Euros. = sum(VALOR..Miles.Euros.))
+bebidas_rows$Producto <- 'Bebidas Alcohólicas'
+salud <- salud %>% filter(!(Producto %in% bebidas))
+df_salud <- rbind(salud, bebidas_rows)
+
+df_salud$Producto <- ifelse(df_salud$Producto == "T.huevos Kgs" , 'Huevos (Kg)', df_salud$Producto)
+df_salud$Producto <- ifelse(df_salud$Producto == "Pescados" , "Total Pescado", df_salud$Producto)
+df_salud$Producto <- ifelse(df_salud$Producto == "Frescos" , 'Huevos (Kg)', df_salud$Producto)
+df_salud$Producto <- ifelse(df_salud$Producto == "Total Leche Liquida" , 'Leche', df_salud$Producto)
+df_salud$Producto <- ifelse(df_salud$Producto == "Boll.past.gallet.cere" , 'Bollería, pastelería, galletas, cereales', df_salud$Producto)
+df_salud$Producto <- ifelse(df_salud$Producto == "Total Pastas" , 'Pasta', df_salud$Producto)
+df_salud$Producto <- ifelse(df_salud$Producto == "Total Aceite" , 'Aceite', df_salud$Producto)
+df_salud$Producto <- ifelse(df_salud$Producto =="Pescados Congelados" , "Pescado Congelado", df_salud$Producto)
+df_salud$Producto <- ifelse(df_salud$Producto == "Pescados Frescos" , "Pescado Fresco", df_salud$Producto)
+df_salud$Producto <- ifelse(df_salud$Producto == "Leche" , 'Leche (L)', df_salud$Producto)
+
+df_salud$Fecha <- as.Date(df_salud$Fecha, format = '%d/%m/%Y')
+salud_frutas <- consumo %>% select(valor, consumo_per_capita, date) %>% group_by(date) %>% 
+  summarise(CONSUMO.X.CAPITA = mean(consumo_per_capita), VALOR..Miles.Euros. = mean(valor))
+salud_frutas$Producto <- 'Frutas y Hortalizas'
+colnames(salud_frutas) <- c('Fecha', "CONSUMO.X.CAPITA","VALOR..Miles.Euros.", 'Producto')
+df_salud <- rbind(salud_frutas, df_salud)
+df_salud <- as.data.frame(df_salud)
+
+pre_salud <- df_salud %>% filter(Fecha < '2020-03-01') %>% group_by(Producto) %>% 
+  summarise(CONSUMO.X.CAPITA = mean(CONSUMO.X.CAPITA), VALOR..Miles.Euros. = mean(VALOR..Miles.Euros.))
+
+post_salud <- df_salud %>% filter(Fecha >= '2020-03-01') %>% group_by(Producto) %>% 
+  summarise(CONSUMO.X.CAPITA = mean(CONSUMO.X.CAPITA), VALOR..Miles.Euros. = mean(VALOR..Miles.Euros.))
+
+box_salud <- pre_salud
+
+box_salud$CONSUMO.X.CAPITA <- ((post_salud$CONSUMO.X.CAPITA - pre_salud$CONSUMO.X.CAPITA) / pre_salud$CONSUMO.X.CAPITA) *100
+box_salud$VALOR..Miles.Euros. <- ((post_salud$VALOR..Miles.Euros. - pre_salud$VALOR..Miles.Euros.) / pre_salud$VALOR..Miles.Euros.) * 100
+
 # FILTROS -----------------------------------------------------------------
+variables31 <- c('Consumo per cápita' = "CONSUMO.X.CAPITA" , 'Ingresos totales' = "VALOR..Miles.Euros." )
+
 pais13 <- unique(data_balance$pais)
 variables13 <- c('Volumen de ventas' = 'volumen', 'Ingresos totales'='valor')
 
@@ -516,9 +559,13 @@ ui <- dashboardPage(
                                                   tags$div(tags$style(HTML( ".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))
                                            ),
                                            column(4,
-                                                  dateRangeInput('select_date211', 'Seleccione rango temporal', start = min(consumo$date, na.rm = TRUE), end = max(consumo$date, na.rm = TRUE), min = min(consumo$date, na.rm = TRUE),
-                                                                 max = max(consumo$date, na.rm = TRUE), startview = "month", weekstart = 0,
-                                                                 language = "es", separator = "hasta", width = NULL)
+                                                  airMonthpickerInput(
+                                                    inputId = "select_date211",
+                                                    label = "Seleccione el rango temporal",
+                                                    language = 'es',
+                                                    value = c('2018-01-01', '2020-06-01'),
+                                                    multiple = 2, clearButton = TRUE, minDate = "2018-01-01", maxDate = "2020-06-01"
+                                                  )
                                            )
                                            
                                          ),
@@ -658,8 +705,47 @@ ui <- dashboardPage(
       # SALUD
       tabItem(tabName = "tema3",
               tabBox(width = 15, height = 2,
-                     tabPanel('tema1'),
-                     tabPanel('tema2')
+                     tabPanel('tema1',
+                              fluidRow(
+                                column(4,
+                                       box(
+                                         title = "Diferentes tipos de productos", width = 12, solidHeader = TRUE,background = "light-blue",
+                                         "El consumo de frutas y hortalizas ha aumentado durante la pandemia, 
+                                         pero, ¿qué ha ocurrido con otro tipo de productos?")
+                                ),
+                                column(4,
+                                       selectInput('select_producto31', 'Seleccione el/los productos', choices = list(
+                                         'Frutas y Hortalizas',
+                                         Carne = c('Total Carne',"Carne Certificada","Carne Fresca","Carne Congelada","Carne Transformada"),
+                                         Pescado = c('Total Pescado',"Pescado Fresco","Pescado Congelado"),
+                                         Carbohidratos = c('Arroz','Pasta', 'Legumbres'),
+                                         Bebidas = c('Bebidas Refrescantes', 'Bebidas Alcohólicas'),
+                                         Bollería = c( "Bollería, pastelería, galletas, cereales", 'Pan'),
+                                         Otros = c('Leche (L)', 'Huevos (Kg)', 'Aceite')), 
+                                         selectize = TRUE, multiple = TRUE, selected = 'Frutas y Hortalizas')
+                                ),
+                                column(4, 
+                                       radioGroupButtons('select_variable31', label = 'Seleccione la variable', choices= variables31, 
+                                                         selected = variables31[1])
+                                )
+                                
+                              ),
+                              fluidRow(
+                                column(9,
+                                       box(
+                                         plotOutput(outputId = 'comp31'), width = 12
+                                       )
+                                ),
+                                column(3,
+                                       valueBoxOutput('box31', width = 12)
+                                )
+                              )
+                              
+                              
+                     ),
+                     tabPanel('tema2'
+                              
+                     )
               )
       )
       
@@ -802,7 +888,9 @@ server <- function(input, output) {
   output$map12_1819 <- renderLeaflet({
     # 1819
     data_spain12_1819 <- temp1819
-    data_spain12_1819 <-data_spain12_1819 %>% group_by(ccaa, producto) %>% summarise(mean=mean(.data[[input$select_variable12]],na.rm = TRUE))
+    data_spain12_1819 <-data_spain12_1819 %>% group_by(ccaa, producto) %>% 
+      summarise(mean=mean(.data[[input$select_variable12]],na.rm = TRUE))
+    
     data_spain12_1819 <-as_tibble(data_spain12_1819)
     map_data_spain12_1819 <- municipalities_spain %>% left_join(data_spain12_1819, by = c("Texto"="ccaa")) 
     map_data_spain12_1819 <- filter(map_data_spain12_1819, producto == input$select_producto12)
@@ -819,7 +907,7 @@ server <- function(input, output) {
     min_2020 <- min(map_data_spain12_2020['mean'])
     
     min <- min(min_1819,min_2020)
-    max <- max(max_2020,max_2020)
+    max <- max(max_1819,max_2020)
     
     vector = c(min,max)
     vector = quantile(vector)
@@ -871,7 +959,7 @@ server <- function(input, output) {
     min_2020 <- min(map_data_spain12_2020['mean'])
     
     min <- min(min_1819,min_2020)
-    max <- max(max_2020,max_2020)
+    max <- max(max_1819,max_2020)
     
     vector = c(min,max)
     vector = quantile(vector)
@@ -1192,7 +1280,50 @@ server <- function(input, output) {
              color = "aqua")
   })
   
+  # SALUD 
   
+  # Comparacion de PER CAPITA 31 
+  output$comp31 <- renderPlot({
+    
+    don<- filter(df_salud, Producto %in% input$select_producto31)
+    
+    ggplot(don, aes_string(x='Fecha', y = input$select_variable31, color='Producto')) +
+      geom_line() +
+      geom_point() +
+      scale_x_date(date_breaks = "2 month", date_labels = "%Y-%b") +
+      labs(y= names(which(variables31 == input$select_variable31)),
+           x = "Fecha",
+           title = 'Comparativa entre distintas familias de productos (UNAI CAMBIALO TU)',
+           caption = "Fuente: Ministerio de Agricultura, Pesca y Alimentación",
+           color = 'Familia producto') +
+      expand_limits(y= 0)+
+      theme_bw()+
+      theme(axis.text.x = element_text(angle=45, hjust = 1), panel.grid.minor = element_blank()) 
+  })
+  
+  
+  # salud Box
+  
+  output$box31 <- renderValueBox({
+    
+    boxtemp <- round(filter(box_salud, Producto == input$select_producto31) %>% 
+      select(input$select_variable31), 2)
+
+    variables31 <- c('Consumo per cápita' = "CONSUMO.X.CAPITA" , 'Ingresos totales' = "VALOR..Miles.Euros." )    
+    if(boxtemp >= 0){
+      valueBox(value = NULL, paste('El', if (input$select_variable31 == 'VALOR..Miles.Euros.') 'ingreso total' 
+                                   else tolower(names(which(variables31 == input$select_variable31))), 'de', 
+                                   tolower(input$select_producto31), 'ha aumentado en un', 
+                                   boxtemp, '% durante el periodo de pandemia (marzo de 2020 en adelante)'), 
+               "Progress", icon = NULL, color = "aqua")
+    }else{
+      valueBox(value = NULL, paste('El', if (input$select_variable31 == 'VALOR..Miles.Euros.') 'ingreso total' 
+                                   else tolower(names(which(variables31 == input$select_variable31))), 'de', 
+                                   tolower(input$select_producto31), 'ha disminuido en un', 
+                                   abs(boxtemp), '% durante el periodo de pandemia (marzo de 2020 en adelante)'), 
+               "Progress", icon = NULL, color = "red")
+    }
+  })
   
 }
 
