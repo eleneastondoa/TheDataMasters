@@ -1292,40 +1292,42 @@ server <- function(input, output) {
   output$comp31 <- renderPlot({
     
     don<- filter(df_salud, Producto %in% input$select_producto31)
-    
-    ggplot(don, aes_string(x='Fecha', y = input$select_variable31, color='Producto')) +
+
+    p <- ggplot(don, aes_string(x='Fecha', y = input$select_variable31, color='Producto')) +
       geom_line() +
       geom_point() +
+      geom_vline(xintercept = ymd('2020-03-01'), linetype = 'dashed') + 
       scale_x_date(date_breaks = "2 month", date_labels = "%Y-%b") +
       labs(y= names(which(variables31 == input$select_variable31)),
            x = "Fecha",
-           title = 'Comparativa entre distintas familias de productos (UNAI CAMBIALO TU)',
+           title = paste('Evolución del', if (input$select_variable31 == "CONSUMO.X.CAPITA") 
+             tolower(names(which(variables31 == input$select_variable31))) else 'ingreso total',
+                         'para diferentes familias de productos'),
            caption = "Fuente: Ministerio de Agricultura, Pesca y Alimentación",
-           color = 'Familia producto') +
+           color = 'Familia de productos') +
       expand_limits(y= 0)+
       theme_bw()+
-      theme(axis.text.x = element_text(angle=45, hjust = 1), panel.grid.minor = element_blank()) 
+      theme(axis.text.x = element_text(angle=45, hjust = 1), panel.grid.minor = element_blank())
+    
+    rango_max<- ggplot_build(p)$layout$panel_scales_y[[1]]$range$range[2]
+    p <- p + annotate(geom = 'label', x = ymd('2019-11-25'), y = rango_max - rango_max*0.05, label = 'Inicio de la pandemia')
+    p
   })
   
-  # salud box frutas y hort.
   
+  # salud box frutas y hort.
   output$box31f <- renderValueBox({
     
     boxtemp <- round(filter(box_salud, Producto == 'Frutas y Hortalizas') %>% 
                        select(input$select_variable31), 2)
     
-    variables31 <- c('Consumo per cápita' = "CONSUMO.X.CAPITA" , 'Ingresos totales' = "VALOR..Miles.Euros." )    
-    if(boxtemp >= 0){
-      valueBox(value = if (input$select_variable31 == 'VALOR..Miles.Euros.') 'Ingreso total' 
-               else (names(which(variables31 == input$select_variable31))), 
-               paste('Las Frutas y Hortalizas', 'ha aumentado en un',  boxtemp, '% durante el periodo de pandemia (marzo de 2020 en adelante)'), 
-               "Progress", icon = NULL, color = "aqua")
-    }else{
-      valueBox(value = if (input$select_variable31 == 'VALOR..Miles.Euros.') 'Ingreso total' 
-               else (names(which(variables31 == input$select_variable31))), 
-               paste('Las Frutas y Hortalizas', 'ha disminuido en un',  boxtemp, '% durante el periodo de pandemia (marzo de 2020 en adelante)'), 
-               "Progress", icon = NULL, color = "red")
-    }
+    valueBox(value = names(which(variables31 == input$select_variable31)), 
+             if (input$select_variable31 == "CONSUMO.X.CAPITA") paste('El', tolower(names(which(variables31 == input$select_variable31))),
+                                                                      'de las frutas y hortalizas ha aumentado un', boxtemp, '% durante
+                                                             el periodo de pandemia (marzo de 2020 en adelante') 
+             else paste('Los', tolower(names(which(variables31 == input$select_variable31))), 'derivados de las frutas y hortalizas han
+               aumentado un', boxtemp, '% durante el periodo de pandemia (marzo de 2020 en adelante)'), 
+             "Progress", icon = NULL, color = "aqua")
   })
   
   
@@ -1337,29 +1339,32 @@ server <- function(input, output) {
     boxtemp <- filter(box_salud, Producto %in% input$select_producto31) %>% 
       select(Producto, input$select_variable31) 
     
-    variables31 <- c('Consumo per cápita' = "CONSUMO.X.CAPITA" , 'Ingresos totales' = "VALOR..Miles.Euros." ) 
+    #variables31 <- c('Consumo per cápita' = "CONSUMO.X.CAPITA" , 'Ingresos totales' = "VALOR..Miles.Euros." ) 
     b <- c()
     dim <- 1
-    patatas <-  input$select_producto31
+    patatas <- input$select_producto31
     
     for(k in 1:dim(boxtemp)[1]){
       valor <- filter(boxtemp, Producto == patatas[k])
       if(valor[,2] >= 0){
-        b[dim] <- paste(patatas[dim],'ha aumentado en un',round(valor[,2],2),'%')
+        b[dim] <- paste('· El', if (input$select_variable31 == 'CONSUMO.X.CAPITA') paste(tolower(names(which(variables31 == input$select_variable31))), 'de')
+                        else 'ingreso total derivado de', tolower(patatas[dim]), 'ha aumentado en un', round(valor[,2], 2), 
+                        '% durante el periodo de pandemia (marzo de 2020 en adelante).')
         dim <- dim + 1
-      }else{
-        b[dim] <- paste(patatas[dim],'ha disminuido en un', round(abs(valor[,2]),2),'%')
+      } else {
+        b[dim] <- paste('· El', if (input$select_variable31 == 'CONSUMO.X.CAPITA') paste(tolower(names(which(variables31 == input$select_variable31))), 'de')
+                        else 'ingreso total derivado de', tolower(patatas[dim]), 'ha disminuido en un', round(abs(valor[, 2]), 2), 
+                        '% durante el periodo de pandemia (marzo de 2020 en adelante).')
         dim <- dim + 1
       }
     }
     
     b <- b[-1]
-    if(length(b)==0){
+    if (length(b)==0) {
       b2 <- 'Seleccione otro producto'
-    }else{
-      b2 <- paste(b, collapse = " ")
+    } else {
+      b2 <- paste(b, collapse = "\n")
     }
-    
     
     valueBox(value = NULL, b2, "Progress", icon = NULL, color = "red")
     
