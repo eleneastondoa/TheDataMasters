@@ -37,7 +37,9 @@ library(tmap)
 library(sf)
 library(stringi)
 library(readxl)
+library(tidyselect)
 options(scipen = 999)
+
 
 # Funciones a utilizar ----------------------------------------------------
 addUnits <- function(n) {
@@ -133,8 +135,8 @@ temp1819$fecha_filtro_inicio <- ymd(paste(temp1819$year, '-',
                                           temp1819$Fecha_inicio, '-',
                                           '01'))
 temp1819$fecha_filtro_fin <- ymd(paste(temp1819$year, '-',
-                                          temp1819$Fecha_fin, '-',
-                                          '01'))
+                                       temp1819$Fecha_fin, '-',
+                                       '01'))
 a_sumar <- which(temp1819$Fecha_fin < temp1819$Fecha_inicio)
 year(temp1819$fecha_filtro_fin)[a_sumar] <- year(temp1819$fecha_filtro_fin)[a_sumar] + 1
 a_restar <- which((temp1819$Fecha_fin < temp1819$Fecha_inicio) & 
@@ -564,7 +566,8 @@ ui <- dashboardPage(
                                                     label = "Seleccione el rango temporal",
                                                     language = 'es',
                                                     value = c('2018-01-01', '2020-06-01'),
-                                                    multiple = 2, clearButton = TRUE, minDate = "2018-01-01", maxDate = "2020-06-01"
+                                                    range = TRUE,
+                                                    minDate = "2018-01-01", maxDate = "2020-06-01"
                                                   )
                                            )
                                            
@@ -623,7 +626,7 @@ ui <- dashboardPage(
                                            column(6,
                                                   box(title = 'Recomendaciones', width = 12, solidHeader = T, tags$div('· No comparar más de 3 Comunidades
                                                       Autónomas simultáneamente.', tags$br(), '· No comparar más de 5 productos simultáneamente.', tags$br(),
-                                                      '· No comparar más de 2 comunidades con 3 productos simultáneamente.'))
+                                                                                                                       '· No comparar más de 2 comunidades con 3 productos simultáneamente.'))
                                            )
                                          ),
                                          
@@ -731,13 +734,18 @@ ui <- dashboardPage(
                                 
                               ),
                               fluidRow(
-                                column(9,
+                                column(8,
                                        box(
                                          plotOutput(outputId = 'comp31'), width = 12
                                        )
                                 ),
-                                column(3,
-                                       valueBoxOutput('box31', width = 12)
+                                column(4,
+                                       fluidRow(
+                                         valueBoxOutput('box31f',width = 12)
+                                       ),
+                                       fluidRow(
+                                         valueBoxOutput('box31', width = 12)
+                                       )
                                 )
                               )
                               
@@ -1250,8 +1258,6 @@ server <- function(input, output) {
   })
   
   
-  
-  
   # BOX PROGRESO 12
   output$progressBox <- renderValueBox({
     
@@ -1301,28 +1307,62 @@ server <- function(input, output) {
       theme(axis.text.x = element_text(angle=45, hjust = 1), panel.grid.minor = element_blank()) 
   })
   
+  # salud box frutas y hort.
+  
+  output$box31f <- renderValueBox({
+    
+    boxtemp <- round(filter(box_salud, Producto == 'Frutas y Hortalizas') %>% 
+                       select(input$select_variable31), 2)
+    
+    variables31 <- c('Consumo per cápita' = "CONSUMO.X.CAPITA" , 'Ingresos totales' = "VALOR..Miles.Euros." )    
+    if(boxtemp >= 0){
+      valueBox(value = if (input$select_variable31 == 'VALOR..Miles.Euros.') 'Ingreso total' 
+               else (names(which(variables31 == input$select_variable31))), 
+               paste('Las Frutas y Hortalizas', 'ha aumentado en un',  boxtemp, '% durante el periodo de pandemia (marzo de 2020 en adelante)'), 
+               "Progress", icon = NULL, color = "aqua")
+    }else{
+      valueBox(value = if (input$select_variable31 == 'VALOR..Miles.Euros.') 'Ingreso total' 
+               else (names(which(variables31 == input$select_variable31))), 
+               paste('Las Frutas y Hortalizas', 'ha disminuido en un',  boxtemp, '% durante el periodo de pandemia (marzo de 2020 en adelante)'), 
+               "Progress", icon = NULL, color = "red")
+    }
+  })
+  
   
   # salud Box
   
   output$box31 <- renderValueBox({
+    #boxtemp <- filter(box_salud, Producto != 'Frutas y Hortalizas')
     
-    boxtemp <- round(filter(box_salud, Producto == input$select_producto31) %>% 
-      select(input$select_variable31), 2)
-
-    variables31 <- c('Consumo per cápita' = "CONSUMO.X.CAPITA" , 'Ingresos totales' = "VALOR..Miles.Euros." )    
-    if(boxtemp >= 0){
-      valueBox(value = NULL, paste('El', if (input$select_variable31 == 'VALOR..Miles.Euros.') 'ingreso total' 
-                                   else tolower(names(which(variables31 == input$select_variable31))), 'de', 
-                                   tolower(input$select_producto31), 'ha aumentado en un', 
-                                   boxtemp, '% durante el periodo de pandemia (marzo de 2020 en adelante)'), 
-               "Progress", icon = NULL, color = "aqua")
-    }else{
-      valueBox(value = NULL, paste('El', if (input$select_variable31 == 'VALOR..Miles.Euros.') 'ingreso total' 
-                                   else tolower(names(which(variables31 == input$select_variable31))), 'de', 
-                                   tolower(input$select_producto31), 'ha disminuido en un', 
-                                   abs(boxtemp), '% durante el periodo de pandemia (marzo de 2020 en adelante)'), 
-               "Progress", icon = NULL, color = "red")
+    boxtemp <- filter(box_salud, Producto %in% input$select_producto31) %>% 
+      select(Producto, input$select_variable31) 
+    
+    variables31 <- c('Consumo per cápita' = "CONSUMO.X.CAPITA" , 'Ingresos totales' = "VALOR..Miles.Euros." ) 
+    b <- c()
+    dim <- 1
+    patatas <-  input$select_producto31
+    
+    for(k in 1:dim(boxtemp)[1]){
+      valor <- filter(boxtemp, Producto == patatas[k])
+      if(valor[,2] >= 0){
+        b[dim] <- paste(patatas[dim],'ha aumentado en un',round(valor[,2],2),'%')
+        dim <- dim + 1
+      }else{
+        b[dim] <- paste(patatas[dim],'ha disminuido en un', round(abs(valor[,2]),2),'%')
+        dim <- dim + 1
+      }
     }
+    
+    b <- b[-1]
+    if(length(b)==0){
+      b2 <- 'Seleccione otro producto'
+    }else{
+      b2 <- paste(b, collapse = " ")
+    }
+    
+    
+    valueBox(value = NULL, b2, "Progress", icon = NULL, color = "red")
+    
   })
   
 }
@@ -1349,5 +1389,8 @@ shinyApp(ui, server)
 
 #shinyWidgets::shinyWidgetsGallery()
 #shinyWidgets::demoAirDatepicker("months")
+
+
+
 
 
