@@ -352,6 +352,15 @@ box_salud <- pre_salud
 box_salud$CONSUMO.X.CAPITA <- ((post_salud$CONSUMO.X.CAPITA - pre_salud$CONSUMO.X.CAPITA) / pre_salud$CONSUMO.X.CAPITA) *100
 box_salud$VALOR..Miles.Euros. <- ((post_salud$VALOR..Miles.Euros. - pre_salud$VALOR..Miles.Euros.) / pre_salud$VALOR..Miles.Euros.) * 100
 
+
+salud_a <- box_salud %>% select(Producto, VALOR..Miles.Euros.)
+colnames(salud_a) <- c('Producto', 'valor')
+salud_a$variable <- 'Ingresos totales'
+salud_b <- box_salud %>% select(Producto, CONSUMO.X.CAPITA)
+colnames(salud_b) <- c('Producto', 'valor')
+salud_b$variable <- 'Consumo per cápita'
+box_salud2 <- rbind(salud_a, salud_b)
+
 # FILTROS -----------------------------------------------------------------
 variables31 <- c('Consumo per cápita' = "CONSUMO.X.CAPITA" , 'Ingresos totales' = "VALOR..Miles.Euros." )
 
@@ -536,7 +545,7 @@ ui <- dashboardPage(
                                 column(12,
                                        box(plotOutput('impoexpo13'),  width = 12,solidHeader = TRUE)
                                 )
-                                
+
                               )
                               
                      )
@@ -734,26 +743,28 @@ ui <- dashboardPage(
                                 
                               ),
                               fluidRow(
-                                column(8,
+                                column(7,
                                        box(
                                          plotOutput(outputId = 'comp31'), width = 12
                                        )
                                 ),
-                                column(4,
+                                column(5,
                                        fluidRow(
                                          valueBoxOutput('box31f',width = 12)
                                        ),
                                        fluidRow(
                                          valueBoxOutput('box31', width = 12)
+                                       ),
+                                       fluidRow(
+                                         box(plotOutput('grap32',  height = 150),width = 12,solidHeader = TRUE)
                                        )
+                                       
                                 )
                               )
                               
                               
-                     ),
-                     tabPanel('tema2'
-                              
                      )
+
               )
       )
       
@@ -1173,7 +1184,7 @@ server <- function(input, output) {
     )
     
     ggplot(don, aes_string(x='date', y=input$select_variable212, color='producto', linetype='ccaa')) +
-      geom_line(size = 0.8) +
+      geom_line(size = 1) +
       labs(y= paste(capitalize(names(which(variables == input$select_variable212))), 
                     if (input$select_variable212 == 'precio') '(€/kg)' 
                     else if (input$select_variable212 == 'volumen') '(miles de kg)'
@@ -1294,8 +1305,7 @@ server <- function(input, output) {
     don<- filter(df_salud, Producto %in% input$select_producto31)
     
     p <- ggplot(don, aes_string(x='Fecha', y = input$select_variable31, color='Producto')) +
-      geom_line() +
-      geom_point() +
+      geom_line(size = 1) +
       geom_vline(xintercept = ymd('2020-03-01'), linetype = 'dashed') + 
       scale_x_date(date_breaks = "2 month", date_labels = "%Y-%b") +
       labs(y= names(which(variables31 == input$select_variable31)),
@@ -1310,24 +1320,30 @@ server <- function(input, output) {
       theme(axis.text.x = element_text(angle=45, hjust = 1), panel.grid.minor = element_blank())
     
     rango_max<- ggplot_build(p)$layout$panel_scales_y[[1]]$range$range[2]
-    p <- p + annotate(geom = 'label', x = ymd('2019-11-25'), y = rango_max - rango_max*0.05, label = 'Inicio de la pandemia')
+    p <- p + annotate(geom = 'text', x = ymd('2019-09-25'), y = rango_max - rango_max*0.05, label = 'Inicio de la pandemia')
     p
   })
   
   
   # salud box frutas y hort.
+  
   output$box31f <- renderValueBox({
     
     boxtemp <- round(filter(box_salud, Producto == 'Frutas y Hortalizas') %>% 
                        select(input$select_variable31), 2)
     
-    valueBox(value = names(which(variables31 == input$select_variable31)), 
-             if (input$select_variable31 == "CONSUMO.X.CAPITA") paste('El', tolower(names(which(variables31 == input$select_variable31))),
-                                                                      'de las frutas y hortalizas ha aumentado un', boxtemp, '% durante
-                                                             el periodo de pandemia (marzo de 2020 en adelante') 
-             else paste('Los', tolower(names(which(variables31 == input$select_variable31))), 'derivados de las frutas y hortalizas han
-               aumentado un', boxtemp, '% durante el periodo de pandemia (marzo de 2020 en adelante)'), 
-             "Progress", icon = NULL, color = "aqua")
+    variables31 <- c('Consumo per cápita' = "CONSUMO.X.CAPITA" , 'Ingresos totales' = "VALOR..Miles.Euros." )    
+    if(boxtemp >= 0){
+      valueBox(value = if (input$select_variable31 == 'VALOR..Miles.Euros.') 'Ingreso total' 
+               else (names(which(variables31 == input$select_variable31))), 
+               paste('Las Frutas y Hortalizas', 'ha aumentado en un',  boxtemp, '% durante el periodo de pandemia (marzo de 2020 en adelante)'), 
+               "Progress", icon = NULL, color = "navy")
+    }else{
+      valueBox(value = if (input$select_variable31 == 'VALOR..Miles.Euros.') 'Ingreso total' 
+               else (names(which(variables31 == input$select_variable31))), 
+               paste('Las Frutas y Hortalizas', 'ha disminuido en un',  boxtemp, '% durante el periodo de pandemia (marzo de 2020 en adelante)'), 
+               "Progress", icon = NULL, color = "navy")
+    }
   })
   
   
@@ -1339,36 +1355,49 @@ server <- function(input, output) {
     boxtemp <- filter(box_salud, Producto %in% input$select_producto31) %>% 
       select(Producto, input$select_variable31) 
     
-    #variables31 <- c('Consumo per cápita' = "CONSUMO.X.CAPITA" , 'Ingresos totales' = "VALOR..Miles.Euros." ) 
+    variables31 <- c('Consumo per cápita' = "CONSUMO.X.CAPITA" , 'Ingresos totales' = "VALOR..Miles.Euros." ) 
     b <- c()
     dim <- 1
-    patatas <- input$select_producto31
+    patatas <-  input$select_producto31
     
     for(k in 1:dim(boxtemp)[1]){
       valor <- filter(boxtemp, Producto == patatas[k])
       if(valor[,2] >= 0){
-        b[dim] <- paste('· El', if (input$select_variable31 == 'CONSUMO.X.CAPITA') paste(tolower(names(which(variables31 == input$select_variable31))), 'de')
-                        else 'ingreso total derivado de', tolower(patatas[dim]), 'ha aumentado en un', round(valor[,2], 2), 
-                        '% durante el periodo de pandemia (marzo de 2020 en adelante).')
+        b[dim] <- paste(patatas[dim],'ha aumentado en un',round(valor[,2],2),'%')
         dim <- dim + 1
-      } else {
-        b[dim] <- paste('· El', if (input$select_variable31 == 'CONSUMO.X.CAPITA') paste(tolower(names(which(variables31 == input$select_variable31))), 'de')
-                        else 'ingreso total derivado de', tolower(patatas[dim]), 'ha disminuido en un', round(abs(valor[, 2]), 2), 
-                        '% durante el periodo de pandemia (marzo de 2020 en adelante).')
+      }else{
+        b[dim] <- paste(patatas[dim],'ha disminuido en un', round(abs(valor[,2]),2),'%')
         dim <- dim + 1
       }
     }
-    
-    b <- b[-1]
-    if (length(b)==0) {
+    print(b)
+    b <- b[!(b %in% c('Frutas y Hortalizas ha aumentado en un 53.4 %','Frutas y Hortalizas ha aumentado en un 850.68 %'))]
+    if(length(b)== 0){
       b2 <- 'Seleccione otro producto'
-    } else {
-      b2 <- paste(b, collapse = "\n")
+    }else{
+      b2 <- HTML(paste0(b, collapse = '<br/>' ))
     }
     
-    valueBox(value = NULL, b2, "Progress", icon = NULL, color = "red")
+    valueBox(value = NULL, b2, "Progress", icon = NULL, color = "light-blue")
     
   })
+  
+  
+  # 32 
+  
+  output$grap32 <- renderPlot({
+    
+    box32 <- box_salud2 %>% filter(Producto %in% input$select_producto31)
+    
+    ggplot(box32, aes_string(x='Producto', y='valor', fill='variable'))+
+      geom_bar(position=position_dodge(), stat="identity")+
+      labs(x = 'Familia producto', y = '% de aumento/disminución') +
+      theme_bw() +
+      theme(axis.text.x = element_text(angle = 20, hjust=1),
+            panel.grid.minor = element_blank())
+    
+  })
+  
   
 }
 
