@@ -6,3 +6,4 @@ rsconnect/
 *.pkl
 pruebas/
 rsconnect/
+*catboost_info/
