@@ -146,13 +146,13 @@ year(temp1819$fecha_filtro_fin)[a_restar] <- year(temp1819$fecha_filtro_fin)[a_r
 temp1819 <- temp1819 %>% 
   filter(date >= fecha_filtro_inicio, date <= fecha_filtro_fin) %>% 
   group_by(ccaa, producto) %>% 
-  summarize (volumen = mean(volumen), valor = mean(valor), precio = mean(precio))
+  summarise (volumen = mean(volumen), valor = mean(valor), precio = mean(precio))
 
 temp2020 <- temp %>% filter(date >= '2020-03-01') %>%
   filter(month >= Fecha_inicio) %>%  
   filter(month <= Fecha_fin) %>% 
   group_by(ccaa, producto) %>% 
-  summarize (volumen = mean(volumen),valor = mean(valor), precio = mean(precio))
+  summarise (volumen = mean(volumen),valor = mean(valor), precio = mean(precio))
 
 temp_comp <- inner_join(temp1819,temp2020, by = c("ccaa", "producto"),suffix = c("_1819", "_2020"))
 
@@ -265,7 +265,7 @@ data_balance$Anio<-as.character(data_balance$Anio)
 data_balance$REPORTER<-as.factor(data_balance$REPORTER)
 data_balance$VALUE_IN_EUROS<-as.numeric(data_balance$VALUE_IN_EUROS)
 data_balance <- data_balance %>% select(FLOW,PERIOD, REPORTER, QUANTITY_IN_100KG, VALUE_IN_EUROS)
-data_balance <- data_balance %>% group_by(FLOW, PERIOD, REPORTER) %>% summarize(volumen = sum(QUANTITY_IN_100KG, na.rm = TRUE), valor = sum(VALUE_IN_EUROS, na.rm = TRUE))
+data_balance <- data_balance %>% group_by(FLOW, PERIOD, REPORTER) %>% summarise(volumen = sum(QUANTITY_IN_100KG, na.rm = TRUE), valor = sum(VALUE_IN_EUROS, na.rm = TRUE))
 
 data_balance$FLOW<- ifelse(data_balance$FLOW == 'EXPORT', " Importación", "Exportación")
 
@@ -317,7 +317,7 @@ salud <- read.csv(file.path(dir_in, file_salud_in), sep=';',  header = TRUE,file
 
 salud$Producto <- str_to_title(salud$Producto)
 bebidas <- c("Total Vinos","Cervezas","Sidras" ,"T.bebidas Espirituosa")
-bebidas_rows <- salud %>% filter(Producto %in% bebidas) %>% group_by(Fecha) %>% summarize(CONSUMO.X.CAPITA = sum(CONSUMO.X.CAPITA), VALOR..Miles.Euros. = sum(VALOR..Miles.Euros.))
+bebidas_rows <- salud %>% filter(Producto %in% bebidas) %>% group_by(Fecha) %>% summarise(CONSUMO.X.CAPITA = sum(CONSUMO.X.CAPITA), VALOR..Miles.Euros. = sum(VALOR..Miles.Euros.))
 bebidas_rows$Producto <- 'Bebidas Alcohólicas'
 salud <- salud %>% filter(!(Producto %in% bebidas))
 df_salud <- rbind(salud, bebidas_rows)
@@ -545,7 +545,7 @@ ui <- dashboardPage(
                                 column(12,
                                        box(plotOutput('impoexpo13'),  width = 12,solidHeader = TRUE)
                                 )
-
+                                
                               )
                               
                      )
@@ -557,121 +557,91 @@ ui <- dashboardPage(
       #AGROANALISIS
       tabItem(tabName = "tema2",
               tabBox(width = 15, height = 2,
-                     tabPanel("Análisis general",
-                              tabsetPanel(
-                                tabPanel('Productos',
-                                         fluidRow(
-                                           column(4, 
-                                                  radioGroupButtons('select_variable211', label = 'Seleccione la variable', choices= variables211, 
-                                                                    selected = variables211[1])
-                                           ),
-                                           column(3, 
-                                                  selectInput('select_producto211', label ='Seleccione el producto', choices= productos, selected= productos[4]),
-                                                  tags$div(tags$style(HTML( ".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))
-                                           ),
-                                           column(4,
-                                                  airMonthpickerInput(
-                                                    inputId = "select_date211",
-                                                    label = "Seleccione el rango temporal",
-                                                    language = 'es',
-                                                    value = c('2018-01-01', '2020-06-01'),
-                                                    range = TRUE,
-                                                    minDate = "2018-01-01", maxDate = "2020-06-01"
-                                                  )
-                                           )
-                                           
-                                         ),
-                                         
-                                         fluidRow(
-                                           column(6,
-                                                  box(
-                                                    title = "¿Cómo varían los productos en las diferentes Comunidades Autónomas?", width = 12, solidHeader = TRUE,background = "light-blue",
-                                                    "Analicemos cómo varían las características de los productos en cada Comunidad Autónoma"
-                                                  )
-                                           )
-                                         ),
-                                         
-                                         fluidRow(
-                                           column(6,
-                                                  leafletOutput(outputId = "mapa211", height = 250)),
-                                           column(6,
-                                                  fluidRow(valueBoxOutput('precio211', width = 12)),
-                                                  fluidRow(valueBoxOutput('nacional211',width = 12))
-                                           )
-                                         )
+                     tabPanel('Analisis general',
+                              fluidRow(
+                                column(4, 
+                                       radioGroupButtons('select_variable211', label = 'Seleccione la variable', choices= variables211, 
+                                                         selected = variables211[1])
                                 ),
-                                
-                                
-                                tabPanel('Comparación productos',
-                                         fluidRow(
-                                           
-                                           column(7, 
-                                                  radioGroupButtons('select_variable212', label = 'Seleccione la variable', choices= variables, 
-                                                                    selected = variables[3])
-                                           ),
-                                           column(2,
-                                                  pickerInput('select_ccaa212', label = 'Seleccione la(s) CCAA', choices= ccaa, selected = ccaa[2],
-                                                              multiple = TRUE, pickerOptions(actionsBox = TRUE)),
-                                                  tags$div(tags$style(HTML( ".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))
-                                                  
-                                           ),
-                                           
-                                           column(3,
-                                                  pickerInput('select_producto212', label ='Seleccione el/los producto/s', choices= productos , selected= c(productos[1],productos[2],productos[3],productos[4]), multiple = TRUE, options = 
-                                                                pickerOptions(
-                                                                  actionsBox = TRUE))
-                                                  
-                                           )
-                                           
-                                           
-                                         ),
-                                         fluidRow(
-                                           column(6,
-                                                  box(
-                                                    title = "Comparemos los productos entre sí", width = 12, height = 120, solidHeader = T, background = "light-blue",
-                                                    "Seleccione las Comunidades Autónomas y los productos a comparar. Se pueden comparar varios
-                                                    productos y comunidades de manera simultánea.")
-                                           ),
-                                           column(6,
-                                                  box(title = 'Recomendaciones', width = 12, solidHeader = T, tags$div('· No comparar más de 3 Comunidades
-                                                      Autónomas simultáneamente.', tags$br(), '· No comparar más de 5 productos simultáneamente.', tags$br(),
-                                                                                                                       '· No comparar más de 2 comunidades con 3 productos simultáneamente.'))
-                                           )
-                                         ),
-                                         
-                                         fluidRow(
-                                           plotOutput(outputId = 'evolucomp212', height = 350)
-                                           
-                                         )
-                                         
-                                         
+                                column(3, 
+                                       selectInput('select_producto211', label ='Seleccione el producto', choices= productos, selected= productos[4]),
+                                       tags$div(tags$style(HTML( ".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))
                                 ),
-                                tabPanel('Económico',
-                                         fluidRow(
-                                           column(6,
-                                                  box(
-                                                    title = "Indicadores económicos", width = 12, solidHeader = TRUE,background = "light-blue",
-                                                    "Analicemos la relación entre el consumo y el gasto per cápita. Seleccione el producto y la ccaa a estudiar")
-                                           ),
-                                           column(2, 
-                                                  selectInput('select_ccaa213', label = 'Seleccione la CCAA', choices= ccaa, selected = ccaa[2]),
-                                                  tags$div(tags$style(HTML( ".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))
-                                           ),
-                                           column(3,
-                                                  selectInput('select_producto213', label ='Seleccione el producto', choices= productos , selected= productos[4]),
-                                                  tags$div(tags$style(HTML( ".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))
-                                           )
-                                           
-                                           
-                                         ),
-                                         fluidRow(
-                                           box(plotOutput(outputId = "barraslineas"),width = 12,solidHeader = TRUE)
-                                           
-                                         )
-                                         
+                                column(4,
+                                       airMonthpickerInput(
+                                         inputId = "select_date211",
+                                         label = "Seleccione el rango temporal",
+                                         language = 'es',
+                                         value = c('2018-01-01', '2020-06-01'),
+                                         range = TRUE,
+                                         minDate = "2018-01-01", maxDate = "2020-06-01"
+                                       )
                                 )
                                 
+                              ),
+                              
+                              fluidRow(
+                                column(6,
+                                       box(
+                                         title = "¿Cómo varían los productos en las diferentes Comunidades Autónomas?", width = 12, solidHeader = TRUE,background = "light-blue",
+                                         "Analicemos cómo varían las características de los productos en cada Comunidad Autónoma"
+                                       )
+                                )
+                              ),
+                              
+                              fluidRow(
+                                column(6,
+                                       leafletOutput(outputId = "mapa211", height = 250)),
+                                column(6,
+                                       fluidRow(valueBoxOutput('precio211', width = 12)),
+                                       fluidRow(valueBoxOutput('nacional211',width = 12))
+                                )
                               )
+                     ),
+                     
+                     
+                     tabPanel('Comparación productos',
+                              fluidRow(
+                                
+                                column(7, 
+                                       radioGroupButtons('select_variable212', label = 'Seleccione la variable', choices= variables, 
+                                                         selected = variables[3])
+                                ),
+                                column(2,
+                                       pickerInput('select_ccaa212', label = 'Seleccione la(s) CCAA', choices= ccaa, selected = ccaa[2],
+                                                   multiple = TRUE, pickerOptions(actionsBox = TRUE)),
+                                       tags$div(tags$style(HTML( ".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}")))
+                                       
+                                ),
+                                
+                                column(3,
+                                       pickerInput('select_producto212', label ='Seleccione el/los producto/s', choices= productos , selected= c(productos[1],productos[2],productos[3],productos[4]), multiple = TRUE, options = 
+                                                     pickerOptions(
+                                                       actionsBox = TRUE))
+                                       
+                                )
+                                
+                                
+                              ),
+                              fluidRow(
+                                column(6,
+                                       box(
+                                         title = "Comparemos los productos entre sí", width = 12, height = 120, solidHeader = T, background = "light-blue",
+                                         "Seleccione las Comunidades Autónomas y los productos a comparar. Se pueden comparar varios
+                                                    productos y comunidades de manera simultánea.")
+                                ),
+                                column(6,
+                                       box(title = 'Recomendaciones', width = 12, solidHeader = T, tags$div('· No comparar más de 3 Comunidades
+                                                      Autónomas simultáneamente.', tags$br(), '· No comparar más de 5 productos simultáneamente.', tags$br(),
+                                                                                                            '· No comparar más de 2 comunidades con 3 productos simultáneamente.'))
+                                )
+                              ),
+                              
+                              fluidRow(
+                                plotOutput(outputId = 'evolucomp212', height = 350)
+                                
+                              )
+                              
                               
                      ),
                      
@@ -764,7 +734,7 @@ ui <- dashboardPage(
                               
                               
                      )
-
+                     
               )
       )
       
