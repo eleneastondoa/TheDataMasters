@@ -17,7 +17,7 @@ Carpeta en la que se encuentran los archivos que contienen la forma geométrica 
 ## Cómo visualizar la aplicación
 Para visualizar la aplicación se pueden seguir dos métodos.
 1. Utilizar el link de acceso que se inserta a continuación:  https://datamasters.shinyapps.io/TheDataMasters/
-2. Acceder interactuando directamente con el código de R. Para lo cual hay que seguir los siguientes pasos:
+2. Acceder interactuando directamente con el código de R. Para lo cual hay que seguir los siguientes pasos.
   2.1. Si se quiere acceder a la aplicación interactuando directamente con el código de R, establecer, antes siquiera de abrir el script, el encoding 'UTF-8' como predeterminado del 		sistema. Para ello seguir los siguientes pasos.
     2.1.1 Abrir o crear un archivo cualquiera de R.
     2.1.2 En la esquina superior izquierda, pinchar en 'Archivo' --> 'Guardar con encoding' --> 'UTF-8' --> 'Establecer como predeterminado del sistema' --> 'Aceptar'
